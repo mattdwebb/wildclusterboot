@@ -2,19 +2,25 @@
 % Please edit documentation in R/wild_cluster_boot.R
 \name{wild_clust_ran}
 \alias{wild_clust_ran}
-\title{Function for wild clustered bootstrap randomization to pass to ran.gen parameter of boot function}
+\title{Function to curry function for ran.gen parameter of boot function}
 \usage{
-wild_clust_ran(data, mle)
+wild_clust_ran(model, x_interest, bootby, boot_dist, H0 = 0)
 }
 \arguments{
-\item{data}{Dataframe, which will be the initial data passed to boot data parameter}
+\item{model}{lm model of interest}
 
-\item{mle}{List of wild bootstrap options, generated from gen_wild_mle}
+\item{x_interest}{String with name of independent variable of interest}
+
+\item{bootby}{Vector of group ids for use in wild bootstrap}
+
+\item{boot_dist}{Vector of bootstrap distribution}
+
+\item{H0}{Number indicating the null hypothesis, default is 0}
 }
 \value{
-Matrix of y_wild, X variables and clusterby, to be passed to boot statistic function
+Function to pass to ran.gen parameter of boot function
 }
 \description{
-Function for wild clustered bootstrap randomization to pass to ran.gen parameter of boot function
+Function to curry function for ran.gen parameter of boot function
 }
 
