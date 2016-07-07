@@ -4,23 +4,22 @@
 \alias{curry_wild_clust_ran}
 \title{Function to pass to ran.gen parameter of boot function}
 \usage{
-curry_wild_clust_ran(data, y_name, uhat, fitted_data, bootby, boot_ids, bG,
-  boot_dist)
+curry_wild_clust_ran(data, y_name, uhat, fitted_data, bootby, boot_dist, mle)
 }
 \arguments{
 \item{data}{Dataframe, which will be the initial data passed to boot data parameter}
 
-\item{y_name}{String with name of response variable}
+\item{y_name}{String with name of response variable in data}
 
 \item{uhat}{Vector of residuals from model}
 
 \item{fitted_data}{Vector of fitted data from model}
 
-\item{bootby}{Vector of group ids for use in wild bootstrap}
+\item{bootby}{String with name of bootby variable in data}
 
-\item{boot_ids}{Vector containing just the unique group ids}
+\item{boot_dist}{Vector of bootstrap distribution}
 
-\item{bG}{Integer indicating the total number of unique groups}
+\item{mle}{Placeholder variable from boot function}
 }
 \value{
 Matrix of y_wild, X variables and clusterby, to be passed to boot statistic function

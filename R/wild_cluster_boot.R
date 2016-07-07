@@ -2,7 +2,7 @@
 #'
 #' @param model lm model of interest
 #' @param x_interest String with name of independent variable of interest
-#' @param bootby Vector of group ids for use in wild bootstrap
+#' @param bootby String with name of bootby variable in data
 #' @param boot_dist Vector of bootstrap distribution
 #' @param H0 Number indicating the null hypothesis, default is 0
 #' @return Function to pass to ran.gen parameter of boot function
@@ -56,8 +56,10 @@ wild_clust_ran <- function(model, x_interest, bootby, boot_dist, H0 = 0){
 #' @param uhat Vector of residuals from model
 #' @param fitted_data Vector of fitted data from model
 #' @param bootby String with name of bootby variable in data
+#' @param boot_dist Vector of bootstrap distribution
+#' @param mle Placeholder variable from boot function
 #' @return Matrix of y_wild, X variables and clusterby, to be passed to boot statistic function
-curry_wild_clust_ran <- function(data, y_name, uhat, fitted_data, bootby, boot_dist){
+curry_wild_clust_ran <- function(data, y_name, uhat, fitted_data, bootby, boot_dist, mle){
 
   #Create dataframe of sampled weights, distributed by boot group
   boot_unique <- unique(data[bootby])
@@ -74,6 +76,7 @@ curry_wild_clust_ran <- function(data, y_name, uhat, fitted_data, bootby, boot_d
 #' @param x_interest String with name of the independent variable of interest
 #' @param clusterby String or list of strings with clusterby variable name or names
 #' @return List containing clustered standard error and coefficients for wild bootstrap
+#' @param H0 Number indicating the null hypothesis, default is 0
 #' @export
 wild_clust_statistic <- function(model, x_interest, clusterby, H0 = 0){
 
@@ -93,6 +96,7 @@ wild_clust_statistic <- function(model, x_interest, clusterby, H0 = 0){
 #' @param formula Formula object to be used on data
 #' @param x_interest String with name of the independent variable of interest
 #' @param clusterby Vector of group ids for clustering
+#' @param H0 Number indicating the null hypothesis, default is 0
 #' @return List containing clustered standard error and coefficients for wild bootstrap
 
 curry_wild_clust_statistic <- function(data, form, x_interest, clusterby, H0){
