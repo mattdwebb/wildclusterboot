@@ -4,7 +4,7 @@
 \alias{curry_wild_clust_statistic}
 \title{Function for wild clustered bootstrap to pass to statistic parameter of boot function}
 \usage{
-curry_wild_clust_statistic(data, form, x_interest, clusterby)
+curry_wild_clust_statistic(data, form, x_interest, clusterby, H0)
 }
 \arguments{
 \item{data}{Dataframe, which will be the data passed from boot ran.gen function at each iteration}
@@ -12,6 +12,8 @@ curry_wild_clust_statistic(data, form, x_interest, clusterby)
 \item{x_interest}{String with name of the independent variable of interest}
 
 \item{clusterby}{Vector of group ids for clustering}
+
+\item{H0}{Number indicating the null hypothesis, default is 0}
 
 \item{formula}{Formula object to be used on data}
 }

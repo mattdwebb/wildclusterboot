@@ -4,7 +4,7 @@
 \alias{wild_clust_statistic}
 \title{Function to curry function to pass to statistic parameter of boot function}
 \usage{
-wild_clust_statistic(model, x_interest, clusterby)
+wild_clust_statistic(model, x_interest, clusterby, H0 = 0)
 }
 \arguments{
 \item{model}{lm model of interest}
@@ -12,6 +12,8 @@ wild_clust_statistic(model, x_interest, clusterby)
 \item{x_interest}{String with name of the independent variable of interest}
 
 \item{clusterby}{String or list of strings with clusterby variable name or names}
+
+\item{H0}{Number indicating the null hypothesis, default is 0}
 }
 \value{
 List containing clustered standard error and coefficients for wild bootstrap

@@ -11,7 +11,7 @@ wild_clust_ran(model, x_interest, bootby, boot_dist, H0 = 0)
 
 \item{x_interest}{String with name of independent variable of interest}
 
-\item{bootby}{Vector of group ids for use in wild bootstrap}
+\item{bootby}{String with name of bootby variable in data}
 
 \item{boot_dist}{Vector of bootstrap distribution}
 
