@@ -2,20 +2,21 @@
 % Please edit documentation in R/wild_cluster_boot.R
 \name{wild_clust_statistic}
 \alias{wild_clust_statistic}
-\title{Function for wild clustered bootstrap to pass to statistic parameter of boot function}
+\title{Function to curry function to pass to statistic parameter of boot function}
 \usage{
-wild_clust_statistic(data)
+wild_clust_statistic(model, x_interest, clusterby)
 }
 \arguments{
-\item{data}{Dataframe, which will be the data passed from boot ran.gen function at each iteration}
+\item{model}{lm model of interest}
+
+\item{x_interest}{String with name of the independent variable of interest}
+
+\item{clusterby}{String or list of strings with clusterby variable name or names}
 }
 \value{
 List containing clustered standard error and coefficients for wild bootstrap
 }
 \description{
-Function for wild clustered bootstrap to pass to statistic parameter of boot function
-}
-\note{
-Dataframe must be in order dependent-independent of interest-other independent-cluster
+Function to curry function to pass to statistic parameter of boot function
 }
 
