@@ -114,3 +114,21 @@ curry_wild_clust_statistic <- function(data, form, x_interest, clusterby, H0){
   return((beta - H0)/se)
 
 }
+
+#' Function for getting p-values out of boot.out object
+#'
+#' @param boot.out Bootstrap object returned from the boot function
+#' @return Named vector of p-values corresponding to each column of boot.out t-matrix
+#' @export
+boot_p_val <- function(boot.out){
+
+  t0 <- boot.out$t0
+  t_df <- data.frame(boot.out$t)
+  boot_reps <- boot.out$R
+
+  prop_vec <- mapply(FUN = function(t, t_vec) sum(t < t_vec)/boot_reps, t = t0, t_vec = t_df)
+  p_vec <- sapply(prop_vec, function(d) 2*min(d, 1-d))
+
+  return(p_vec)
+
+}
