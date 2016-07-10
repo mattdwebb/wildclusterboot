@@ -33,3 +33,18 @@ test_that('wild_clust_statistic returns correct se',{
   expect_equal(test_se, -1.5917145, tolerance = 0.000001)
 
 })
+
+t <- read.csv(file = 'test_files/test_boot.csv', stringsAsFactors = FALSE)
+t0 <- c(-0.4443353, -0.3948289)
+R <- 399
+boot.out <- list(t = t, t0 = t0, R = R)
+test_t <- boot_p_val(boot.out)
+
+test_that('boot_p_vals returns the correct values', {
+
+  expect_equal(test_t, c(0.6165414, 0.601504), tolerance = 0.0001)
+  expect_equal(length(test_t), 2)
+
+})
+
+
