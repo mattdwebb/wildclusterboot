@@ -13,7 +13,7 @@ wild_clust_ran(model, x_interest, bootby, boot_dist, H0 = 0)
 
 \item{bootby}{String with name of bootby variable in data}
 
-\item{boot_dist}{Vector of bootstrap distribution}
+\item{boot_dist}{Vector of bootstrap distribution or string indicating built-in distribution}
 
 \item{H0}{Number indicating the null hypothesis, default is 0}
 }

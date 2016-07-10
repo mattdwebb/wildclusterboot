@@ -3,7 +3,7 @@
 #' @param model lm model of interest
 #' @param x_interest String with name of independent variable of interest
 #' @param bootby String with name of bootby variable in data
-#' @param boot_dist Vector of bootstrap distribution
+#' @param boot_dist Vector of bootstrap distribution or string indicating built-in distribution
 #' @param H0 Number indicating the null hypothesis, default is 0
 #' @return Function to pass to ran.gen parameter of boot function
 #' @export
@@ -12,6 +12,22 @@ wild_clust_ran <- function(model, x_interest, bootby, boot_dist, H0 = 0){
   #Check if model is class lm
   if(class(model) != 'lm'){
     stop('Model variable must be lm class')
+  }
+
+  #If boot_dist is character, resolve to default distribution
+  if(class(boot_dist) == 'character'){
+
+    default_dist <- list(six_pt = c(-sqrt(3/2),-sqrt(2/2),-sqrt(1/2),sqrt(1/2),sqrt(2/2),sqrt(3/2)),
+                         two_pt = c(-1,1),
+                         norm = rnorm)
+
+    if(!boot_dist %in% names(default_dist)){
+      error_message <- paste('Only the following default distributions supported:', paste(names(default_dist), collapse = ', '))
+      stop(error_message)
+    }
+
+    boot_dist <- default_dist[[boot_dist]]
+
   }
 
   #Extract data from the model
