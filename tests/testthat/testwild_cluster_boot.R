@@ -7,7 +7,7 @@ x_interest <- 'X'
 bootby <- 'clusterby'
 clusterby <- 'clusterby'
 H0 <- 1
-boot_dist <- c(-sqrt(3/2),-sqrt(2/2),-sqrt(1/2),sqrt(1/2),sqrt(2/2),sqrt(3/2))
+boot_dist <- 'six_pt'
 model <- lm(data = test_data, formula = 'Y ~ X')
 
 set.seed(42)
