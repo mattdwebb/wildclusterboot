@@ -4,21 +4,15 @@
 \alias{wild_clust_ran}
 \title{Function to curry function for ran.gen parameter of boot function}
 \usage{
-wild_clust_ran(model, x_interest, bootby, boot_dist, H0 = 0)
+wild_clust_ran(data, mle)
 }
 \arguments{
-\item{model}{lm model of interest}
+\item{data}{Data of interest, passed by boot function}
 
-\item{x_interest}{String with name of independent variable of interest}
-
-\item{bootby}{String with name of bootby variable in data}
-
-\item{boot_dist}{Vector of bootstrap distribution or string indicating built-in distribution}
-
-\item{H0}{Number indicating the null hypothesis, default is 0}
+\item{mle}{List of optional parameters, passed by boot function}
 }
 \value{
-Function to pass to ran.gen parameter of boot function
+Randomized data using wild bootstrap proccess
 }
 \description{
 Function to curry function for ran.gen parameter of boot function
