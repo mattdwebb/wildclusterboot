@@ -1,3 +1,5 @@
+#' Performs wild clustered bootstrap
+#'
 #' @param data Dataframe with all data, including group indices
 #' @param model lm object of interest
 #' @param x_interest X paramater of interest
@@ -9,7 +11,7 @@
 #' @param cores Interger indicating cores for multicore processing
 #' @return boot.out object from built-in boot function
 #' @export
-wildclusterboot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, cores = 1){
+wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, cores = 1){
 
   #Check if model is class lm
   if(class(model) != 'lm'){
