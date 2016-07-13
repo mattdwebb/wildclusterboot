@@ -2,5 +2,4 @@
 
 export(boot_p_val)
 export(clustered_se)
-export(wild_clust_ran)
-export(wild_clust_statistic)
+export(wild_cluster_boot)
