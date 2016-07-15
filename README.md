@@ -10,7 +10,7 @@ Installation
 
 The easiest way to install this package is via devtools. To install devtools, run the following code:
 
-    install.libraries(devtools)
+    install.packages('devtools')
 
 Once devtools is installed, go get a GitHub [personal API key](https://github.com/settings/tokens) (you only need to give it repo access). Make sure to copy the generated key and then run the following code:
 
