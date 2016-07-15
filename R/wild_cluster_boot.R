@@ -25,7 +25,7 @@ wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boo
     parallel <- 'snow'
   }
 
-  mle <- wild_clust_mle(model = model, x_interest = x_interest, clusterby = clusterby, boot_dist = boot_dist, bootby = bootby, H0 = H0)
+  mle <- wild_clust_mle(model = model, x_interest = x_interest, boot_dist = boot_dist, bootby = bootby, H0 = H0)
 
   boot.out <- boot::boot(data = data,
                          statistic = wild_clust_statistic,
