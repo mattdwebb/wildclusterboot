@@ -47,7 +47,7 @@ test_that('clustered_se calculates proper values',{
 
   #Create second X value and check that resulting vector correct size and names
   X2 <- rnorm(length(X))
-  model <- lm(Y ~ X + X2, x = TRUE)
+  model <- lm(Y ~ X + X2)
   se <- clustered_se(model = model, clusterby = 'G')
   expect_equal(length(se), 3)
   expect_equal(names(se), c('(Intercept)', 'X', 'X2'))
@@ -58,7 +58,7 @@ test_that('clustered_se calculates proper values',{
 
 })
 
-test_that('clustered_se calculates proper values',{
+test_that('clustered_se calculates proper values for multiway',{
 
   #Set out X and Y vectors
   X <- c(1.9157903, 1.9157903, 1.4053975, 1.4053975, 0.3096093, 0.3096093, -0.2007836, -0.2007836)
@@ -76,6 +76,26 @@ test_that('clustered_se calculates proper values',{
   #Generate model and test if result is expected value and size
   model <- lm(Y ~ X)
   se <- clustered_se(data = dat, model = model, clusterby = ~ G + H)
+  expect_equal(se, test_se, tolerance = 0.0001)
+  expect_equal(length(se), 2)
+
+  #Set out X and Y vectors
+  X <- c(1.9157903, 1.9157903, 1.4053975, 1.4053975, 0.3096093, 0.3096093, -0.2007836, -0.2007836)
+  Y <- c(5.3051725, 3.2240347, 0.3796652, 1.4897371, 2.4207392, 3.4025150, 0.6618861, 1.4311579)
+
+  #Set out clusterby vector
+  G <- c(1, 1, 2, 2, 1, 1, 2, 2)
+  H <- c(1, 2, 1, 2, 1, 2, 1, 2)
+  F <- c(1, 1, 1, 1, 2, 2, 2, 2)
+
+  dat <- data.frame(X = X, Y = Y, G = G, H = H, F = F)
+
+  #Result of what se vector should be
+  test_se <- c('(Intercept)' = 0.4599097, 'X' = 0.651369)
+
+  #Generate model and test if result is expected value and size
+  model <- lm(Y ~ X)
+  se <- clustered_se(data = dat, model = model, clusterby = ~ G + H + F)
   expect_equal(se, test_se, tolerance = 0.0001)
   expect_equal(length(se), 2)
 
