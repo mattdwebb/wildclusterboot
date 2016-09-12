@@ -170,8 +170,7 @@ wild_clust_statistic <- function(data, model, x_interest, clusterby, H0){
   new_model <- lm(data = data, formula = form)
 
   #Get clustered SE and beta for variable of interest
-  se_list <- lapply(X = clusterby, FUN = function(clust) clustered_se(model = new_model, clusterby = data[,clust])[x_interest])
-  # ses <- clustered_se(model = model, clusterby = clusterby)
+  se_list <- lapply(X = clusterby, FUN = function(clust) clustered_se(model = new_model, data = data, clusterby = clust)[x_interest])
 
   se <- as.numeric(se_list)
   beta <- as.numeric(coef(model)[x_interest])
