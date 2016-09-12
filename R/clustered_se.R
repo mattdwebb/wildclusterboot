@@ -1,4 +1,4 @@
-#' Takes an lm model and returns named vector of clustered standard errors
+#' Calculate clustered standard errors for lm model
 #'
 #' @param data Dataframe containing both model data and clusterby variables
 #' @param model lm object for which clustered errors sought
@@ -76,6 +76,7 @@ clustered_se <- function(data, model, clusterby, G = NULL, cluster_ids = NULL){
 
 #' Calculate clustered SEs by sandwich matrix method
 #'
+#' @param X Matrix of independent variables
 #' @param bread Bread matrix as X'X
 #' @param uhat Vector of residual values from model
 #' @param clusterby Vector of cluster indices
@@ -90,12 +91,31 @@ calc_sandwich_mat <- function(X, bread, uhat, clustervars, cluster_ids, G, comb_
   const <- G/(G-1) * (n-1)/(n-k)
 
   #Calculate 'meat' matrix
-  meat_list <- lapply(cluster_ids, function(x) crossprod(t(crossprod(X[clustervars==x, ,drop = FALSE], uhat[clustervars==x]))))
+  meat_list <- mapply(FUN = x_u_cross, id = cluster_ids, MoreArgs = list(X = X, uhat = uhat, clustervars = clustervars), SIMPLIFY = FALSE)
   meat <- Reduce('+', meat_list)
 
-  # Calculate sandwich matrix
+  # Calculate sandwich matrix with adjustment
   sandwich <-  (-1)^(comb_n - 1) * const * bread %*% meat %*% bread
 
   return(sandwich)
+
+}
+
+#' Calculate cross multiplication of cluster X and U matrices
+#'
+#' @param bread Bread matrix as X'X
+#' @param uhat Vector of residual values from model
+#' @param clusterby Vector of cluster indices
+#' @param cluster_ids Vector of unique cluster indices
+#' @param G Integer for the number of groups
+#' @return Named vector of clustered standard errors
+x_u_cross <- function(id, X, uhat, clustervars){
+
+  #Calculate X_i and U_i dot product
+  half_mat <- crossprod(X[clustervars==id, ,drop = FALSE], uhat[clustervars==id])
+
+  #Calculate dot product of half_mat and return
+  full_mat <- crossprod(t(half_mat))
+  return(full_mat)
 
 }
