@@ -35,36 +35,28 @@ clustered_se <- function(model, clusterby, G = NULL, cluster_ids = NULL){
 
 }
 
-
 #' Calculate clustered SEs by sandwich matrix method
 #'
-#' @param X Vector or matrix of x variables
+#' @param bread Bread matrix as X'X
 #' @param uhat Vector of residual values from model
 #' @param clusterby Vector of cluster indices
-#' @param cluster_ids Vecotr of unique cluster indices
+#' @param cluster_ids Vector of unique cluster indices
 #' @param G Integer for the number of groups
 #' @return Named vector of clustered standard errors
-#' @examples
-#' cluster_se(X = x, uhat = uhat, clusterby = clusterby)
-calc_cluster_se <- function(X, uhat, clusterby, cluster_ids, G){
+calc_sandwich_mat <- function(X, bread, uhat, clustervars, cluster_ids, G, comb_n){
 
   #Calculate equation constant
   n <- dim(X)[1]
   k <- dim(X)[2]
   const <- G/(G-1) * (n-1)/(n-k)
 
-  #Calculate 'bread' matrix
-  bread <- solve(crossprod(X))
-
   #Calculate 'meat' matrix
-  meat_list <- lapply(cluster_ids,function(x) crossprod(t(crossprod(X[clusterby==x,],uhat[clusterby==x]))))
-  meat <- meat <- Reduce('+', meat_list)
+  meat_list <- lapply(cluster_ids, function(x) crossprod(t(crossprod(X[clustervars==x, ,drop = FALSE], uhat[clustervars==x]))))
+  meat <- Reduce('+', meat_list)
 
   # Calculate sandwich matrix
-  sandwich <-  const * bread %*% meat %*% bread
+  sandwich <-  (-1)^(comb_n - 1) * const * bread %*% meat %*% bread
 
-  #Take diagonal of sandwich to get SE vector and return it
-  se <- sqrt(diag(sandwich))
-  return(se)
+  return(sandwich)
 
 }
