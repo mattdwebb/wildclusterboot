@@ -139,6 +139,12 @@ wild_clust_ran <- function(data, mle){
 #' @return Randomized data using wild bootstrap proccess
 wild_clust_ran_ <- function(data, y_name, uhat, fitted_data, bootby, boot_dist){
 
+  if(class(bootby) == 'formula'){
+
+    bootby <- all.vars(bootby)
+
+  }
+
   #Create unique vector of group ids
   boot_unique <- unique(data[bootby])
 

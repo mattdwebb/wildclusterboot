@@ -30,15 +30,32 @@ test_that('wild_clust_mle returns proper list',{
 })
 
 set.seed(42)
-ran.data <- wild_clust_ran(data = test_data, mle = test_mle)
+ran_data <- wild_clust_ran(data = test_data, mle = test_mle)
+
+mult_test_data <- read.csv(file = 'test_files/mult_test_data.csv', stringsAsFactors = FALSE)
+mult_test_ywild <- read.csv(file = 'test_files/mult_test_ywild.csv', stringsAsFactors = FALSE)
+mult_test_mle <- wild_clust_mle(model = model,
+                           x_interest = x_interest,
+                           bootby = ~ clusterby + clusterby2,
+                           boot_dist = boot_dist,
+                           H0 = H0)
+
+set.seed(42)
+mult_ran_data <- wild_clust_ran(data = mult_test_data, mle = mult_test_mle)
 
 test_that('wild_clust_ran returns returns the correct dataframe',{
 
-  expect_equal(nrow(ran.data), 100)
-  expect_equal(ncol(ran.data), 3)
-  expect_equal(as.numeric(ran.data[, 'X']), as.numeric(test_data[, 'X']))
-  expect_equal(as.numeric(ran.data[, 'Y']), as.numeric(test_ywild[, 'Y']), tolerance = 0.0001)
-  expect_equal(as.numeric(ran.data[, 'clusterby']), as.numeric(test_ywild[, 'clusterby']))
+  expect_equal(nrow(ran_data), 100)
+  expect_equal(ncol(ran_data), 3)
+  expect_equal(as.numeric(ran_data[, 'X']), as.numeric(test_data[, 'X']))
+  expect_equal(as.numeric(ran_data[, 'Y']), as.numeric(test_ywild[, 'Y']), tolerance = 0.0001)
+  expect_equal(as.numeric(ran_data[, 'clusterby']), as.numeric(test_ywild[, 'clusterby']))
+
+  expect_equal(nrow(mult_ran_data), 100)
+  expect_equal(ncol(mult_ran_data), 4)
+  expect_equal(as.numeric(mult_ran_data[, 'X']), as.numeric(mult_test_data[, 'X']))
+  expect_equal(as.numeric(mult_ran_data[, 'Y']), as.numeric(mult_test_ywild[, 'Y']), tolerance = 0.0001)
+  expect_equal(as.numeric(mult_ran_data[, 'clusterby']), as.numeric(mult_test_ywild[, 'clusterby']))
 
 })
 
