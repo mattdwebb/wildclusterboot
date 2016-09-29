@@ -18,6 +18,7 @@ calc_sandwich_mat(X, bread, uhat, clustervars, cluster_ids, G, comb_n)
 \item{G}{Integer for the number of groups}
 
 \item{clusterby}{Vector of cluster indices}
+}
 \value{
 Named vector of clustered standard errors
 }
