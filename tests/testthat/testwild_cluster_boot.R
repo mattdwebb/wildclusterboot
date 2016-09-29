@@ -35,10 +35,10 @@ ran_data <- wild_clust_ran(data = test_data, mle = test_mle)
 mult_test_data <- read.csv(file = 'test_files/mult_test_data.csv', stringsAsFactors = FALSE)
 mult_test_ywild <- read.csv(file = 'test_files/mult_test_ywild.csv', stringsAsFactors = FALSE)
 mult_test_mle <- wild_clust_mle(model = model,
-                           x_interest = x_interest,
-                           bootby = ~ clusterby + clusterby2,
-                           boot_dist = boot_dist,
-                           H0 = H0)
+                                x_interest = x_interest,
+                                bootby = ~ clusterby + clusterby2,
+                                boot_dist = boot_dist,
+                                H0 = H0)
 
 set.seed(42)
 mult_ran_data <- wild_clust_ran(data = mult_test_data, mle = mult_test_mle)
