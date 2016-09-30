@@ -175,11 +175,14 @@ wild_clust_statistic <- function(data, model, x_interest, clusterby, H0){
   #Estimate model from data
   new_model <- lm(data = data, formula = form)
 
+  #If clusterby is formula, wrap it in a list
+  clusterby <- if(class(clusterby) == 'formula') list(clusterby) else clusterby
+
   #Get clustered SE and beta for variable of interest
   se_list <- lapply(X = clusterby, FUN = function(clust) clustered_se(model = new_model, data = data, clusterby = clust)[x_interest])
 
   se <- as.numeric(se_list)
-  beta <- as.numeric(coef(model)[x_interest])
+  beta <- as.numeric(coef(new_model)[x_interest])
 
   return((beta - H0)/se)
 

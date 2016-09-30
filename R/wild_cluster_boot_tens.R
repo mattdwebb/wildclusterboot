@@ -3,11 +3,11 @@
 #' @param data Dataframe with all data, including group indices
 #' @param model lm object of interest
 #' @param x_interest X paramater of interest
-#' @param clusterby String with name of clusterby variable in data
+#' @param clusterby String or formila with name of clusterby variable in data
 #' @param boot_dist Vector of weights for wild bootstrap or string specifying default distribution
 #' @param boot_reps Number of repititions for resampling data
 #' @param bootby String with name of bootby variable in data, default is same as clusterby
-#' @param H0 Integer inticating the alternative hypothesis, default is 0
+#' @param H0 Float of integer inticating the null hypothesis, default is 0
 #' @return p-value corresponding to bootstrap result
 #' @export
 t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0){
@@ -66,7 +66,9 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   boot_unique <- unique(data[bootby])
 
   #Add weights for each group
-  weights <- data.frame(matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE), nrow = nrow(boot_unique), ncol = boot_reps))
+  weights <- data.frame(matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
+                               nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
+
   weight_names <- names(weights)
   boot_weights <- cbind(boot_unique, weights)
   expanded_weights <- merge(x = data, y = boot_weights)
@@ -119,16 +121,38 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   sandwich_list <- suppressWarnings(mapply(FUN = cluster_sandwich, clustervars = clustervars, comb_n = comb_n,
                                            MoreArgs = list(X = X, bread = bread, x_ind = x_ind, E = E, k = k, boot_reps = boot_reps, n = n), SIMPLIFY = FALSE))
 
-  #Reduce by addtion
-  sandwich <- Reduce('+', sandwich_list)
+  #Reduce by addtion and convert to vector
+  se <- sqrt(Reduce('+', sandwich_list))
+  beta <- B[x_ind, ]
+
+  p_value <- t_boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
+                          clusterby = clusterby, x_interest = x_interest, boot_reps = boot_reps)
+
+}
+
+#TODO Create bootstrap p-value function
+
+#' Calculate bootstrap p-value
+#'
+#' @param se Vector of standard errors
+#' @param beta Vector of coefficients for x of interest
+#' @param H0 Float of integer inticating the null hypothesis, default is 0
+#' @param data Dataframe of initial data
+#' @param model lm object of interest
+#' @param clusterby String or formula indicating variable in data for clustering
+#' @param x_interest X paramater of interest
+#' @param boot_reps Integer for number of replications
+#' @return Bootstrap p-value
+#'
+t_boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_reps){
 
   #Calculate t vector
-  t <- (B[x_ind,]- H0)/as.vector(sandwich)
+  t <- (beta - H0)/se
 
   #Calculate initial t
   se0 <- clustered_se(data = data, model = model, clusterby = clusterby)
   beta0 <- coef(model)
-  t0 <- beta0[x_interest]/se0[x_interest]
+  t0 <- (beta0[x_interest] - H0)/se0[x_interest]
 
   #Calculate p-value
   prop <- sum(t0 < t)/boot_reps
@@ -137,6 +161,7 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   return(p)
 
 }
+
 
 #' Calculate sandiwch tensor
 #'
@@ -157,17 +182,17 @@ cluster_sandwich <- function(clustervars, X, bread, x_ind, E, k, boot_reps, n, c
   meat_tensor <- cluster_meat(clustervars, X, E, k, boot_reps)
 
   #Get constant for correction
-  G <- nrow(unique(clustervars))
+  G <- length(unique(clustervars))
   const <- G/(G-1) * (n-1)/(n-k)
 
   #Create tensor of half sandwiches
   half_sandwich <- tensorA::mul.tensor(X = bread, i = 2, Y = meat_tensor, j = 1)
 
   #Create full tensor of sandwiches
-  sandwich_tensor <-tensorA::mul.tensor(X = half_sandwich, i = 2, Y = t(bread), j = 1)
+  sandwich_tensor <- tensorA::mul.tensor(X = half_sandwich, i = 2, Y = t(bread), j = 1)
 
   #Return element for x of interest from each sandwich matrix in tensor
-  return((-1)^(comb_n - 1) * const * sandwich_tensor[x_ind, , x_ind])
+  return((-1)^(comb_n - 1) * const * as.vector(sandwich_tensor[x_ind, , x_ind]))
 
 }
 
@@ -179,7 +204,6 @@ cluster_sandwich <- function(clustervars, X, bread, x_ind, E, k, boot_reps, n, c
 #' @param boot_reps Integer for number of replications
 #' @return Meat tensor for all clusters
 #'
-
 cluster_meat <- function(clustervars, X, E, k, boot_reps){
 
   #Split X and E matrices by cluster indices
@@ -208,7 +232,7 @@ multiply_cluster_meat <- function(xe, boot_reps, k){
   n <- nrow(x)
 
   #Calculate meat tensor and return
-  half_meat <-tensorA::mul.tensor(X = x,i = 1, Y = array(e, c(n, 1, boot_reps)), j = 1)
+  half_meat <- tensorA::mul.tensor(X = x,i = 1, Y = array(e, c(n, 1, boot_reps)), j = 1)
   return(array(tensorA::mul.tensor(X = half_meat, Y = half_meat, by = 3), c(k, k, boot_reps)))
 
 }

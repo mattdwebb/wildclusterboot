@@ -59,8 +59,6 @@ clustered_se <- function(data, model, clusterby, G = NULL, cluster_ids = NULL){
   #Get residuals from lm model
   uhat <- resid(model)
 
-  #TODO: generate sandwich mat for each comb of cluster dimensions, then add subtract and extract SEs
-
   sandwich_list <- mapply(FUN = calc_sandwich_mat, clustervars = clustervars, cluster_ids = cluster_ids, G = G, comb_n = comb_n,
                           MoreArgs = list(X = X, bread = bread, uhat = uhat), SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
