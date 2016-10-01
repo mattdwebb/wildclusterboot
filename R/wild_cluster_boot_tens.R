@@ -121,8 +121,24 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   sandwich_list <- suppressWarnings(mapply(FUN = cluster_sandwich, clustervars = clustervars, comb_n = comb_n,
                                            MoreArgs = list(X = X, bread = bread, x_ind = x_ind, E = E, k = k, boot_reps = boot_reps, n = n), SIMPLIFY = FALSE))
 
-  #Reduce by addtion and convert to vector
-  se <- sqrt(Reduce('+', sandwich_list))
+  sandwich <- Reduce('+', sandwich_list)
+
+  if(class(clusterby) == 'formula' | any(sandwich < 0)){
+
+    #Run correction on individual sandwich matrices
+    eigen_sandwich <- apply(X = sandwich, MARGIN = 2, FUN = eigen_fix)
+
+    #Reform array and extract SE
+    sandwich_array <- array(eigen_sandwich, dim = c(k, k, boot_reps))
+    se <- sqrt(sandwich_array[x_ind, x_ind, ])
+
+  } else {
+
+    #Extract SE
+    se <- sqrt(as.vector(sandwich[x_ind, ,x_ind]))
+  }
+
+  #Get beta for x of interest
   beta <- B[x_ind, ]
 
   p_value <- t_boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
@@ -130,7 +146,30 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
 
 }
 
-#TODO Create bootstrap p-value function
+#' Spectral decompostion fix
+#'
+#' @param sandwich Sandwich matrix
+#' @return Corrected matrix
+#'
+eigen_fix <- function(sandwich){
+
+  #Calculate t vector
+  if(any(diag(sandwich) < 0)){
+
+    #Get eigen values and vectors from sandwich
+    eig <- eigen(sandwich)
+
+    #Zero out negative eigen values
+    eig_vals <- ifelse(eig$values < 0, 0, eig$values)
+
+    #Recreate sandwich matrix
+    sandwich <- eig$vectors %*% diag(eig_vals) %*% t(eig$vectors)
+
+  }
+
+  return(sandwich)
+
+}
 
 #' Calculate bootstrap p-value
 #'
@@ -192,7 +231,7 @@ cluster_sandwich <- function(clustervars, X, bread, x_ind, E, k, boot_reps, n, c
   sandwich_tensor <- tensorA::mul.tensor(X = half_sandwich, i = 2, Y = t(bread), j = 1)
 
   #Return element for x of interest from each sandwich matrix in tensor
-  return((-1)^(comb_n - 1) * const * as.vector(sandwich_tensor[x_ind, , x_ind]))
+  return((-1)^(comb_n - 1) * const * sandwich_tensor)
 
 }
 

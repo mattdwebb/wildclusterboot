@@ -30,6 +30,20 @@ test_that('wild_cluster_boot returns correct value',{
 
   expect_equal(test_p, 0.56)
 
+  data <- read.csv('test_files/multiway_problems.csv')
+  model <- lm(data = data, formula = Y ~ W)
+  boot_reps <- 50
+  clusterby <- ~ G + H
+  x_interest <- 'W'
+  boot_dist <- 'six_pt'
+  H0 <- 1
+
+  set.seed(42)
+  test_p <- t_wild_cluster_boot(data = data, model = model, x_interest = x_interest, clusterby = clusterby,
+                                boot_dist = boot_dist, boot_reps = boot_reps, H0 = H0)
+
+  expect_equal(test_p, 0.08)
+
 })
 
 test_that('multiply_cluster_meat calculates correct tensor', {
@@ -81,6 +95,6 @@ test_that('cluster_sandwich calculates correct tensor', {
   test_cluster_sandwich <- suppressWarnings(cluster_sandwich(clustervars = clustervars, X = X, bread = bread, x_ind = 2,
                                                          E = E, boot_reps = boot_reps, k = k, n = nrow(X), comb_n = 1))
 
-  expect_equal(test_cluster_sandwich, cluster_sandwich, tolerance = 0.0001)
+  expect_equal(as.numeric(test_cluster_sandwich[2, ,2]), cluster_sandwich, tolerance = 0.0001)
 
 })
