@@ -14,7 +14,7 @@ t_wild_cluster_boot(data, model, x_interest, clusterby, boot_dist, boot_reps,
 
 \item{x_interest}{X paramater of interest}
 
-\item{clusterby}{String with name of clusterby variable in data}
+\item{clusterby}{String or formila with name of clusterby variable in data}
 
 \item{boot_dist}{Vector of weights for wild bootstrap or string specifying default distribution}
 
@@ -22,7 +22,7 @@ t_wild_cluster_boot(data, model, x_interest, clusterby, boot_dist, boot_reps,
 
 \item{bootby}{String with name of bootby variable in data, default is same as clusterby}
 
-\item{H0}{Integer inticating the alternative hypothesis, default is 0}
+\item{H0}{Float of integer inticating the null hypothesis, default is 0}
 }
 \value{
 p-value corresponding to bootstrap result
