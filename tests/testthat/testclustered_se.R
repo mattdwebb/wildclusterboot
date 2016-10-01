@@ -91,12 +91,21 @@ test_that('clustered_se calculates proper values for multiway',{
   clusterby <- ~ G + H + F
 
   #Result of what se vector should be
-  test_se <- c('(Intercept)' = 1.0919700, 'X' = 0.0714307)
+  test_se <- c('(Intercept)' = 1.0919700, 'X' = 0.1106969)
 
   #Generate model and test if result is expected value and size
   model <- lm(data = data, formula = Y ~ X)
   se <- clustered_se(data = data, model = model, clusterby = clusterby)
   expect_equal(se, test_se, tolerance = 0.0001)
   expect_equal(length(se), 2)
+
+  #Test of spectral decomposition correction works
+  test_se <- c('(Intercept)' = 0.0109916, 'W' = 0.0032928)
+
+  data <- read.csv('test_files/multiway_problems.csv')
+  model <- lm(data = data, formula = Y ~ W)
+  clusterby <- ~ G + H + F
+  se <- clustered_se(data = data, model = model, clusterby = clusterby)
+  expect_equal(se, test_se, tolerance = 0.0001)
 
 })

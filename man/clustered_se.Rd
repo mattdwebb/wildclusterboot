@@ -2,11 +2,13 @@
 % Please edit documentation in R/clustered_se.R
 \name{clustered_se}
 \alias{clustered_se}
-\title{Takes an lm model and returns named vector of clustered standard errors}
+\title{Calculate clustered standard errors for lm model}
 \usage{
-clustered_se(model, clusterby, G = NULL, cluster_ids = NULL)
+clustered_se(data, model, clusterby, G = NULL, cluster_ids = NULL)
 }
 \arguments{
+\item{data}{Dataframe containing both model data and clusterby variables}
+
 \item{model}{lm object for which clustered errors sought}
 
 \item{clusterby}{Vector of cluster indices corresponding to X variables}
@@ -19,6 +21,6 @@ clustered_se(model, clusterby, G = NULL, cluster_ids = NULL)
 Named vector of clustered standard errors
 }
 \description{
-Takes an lm model and returns named vector of clustered standard errors
+Calculate clustered standard errors for lm model
 }
 

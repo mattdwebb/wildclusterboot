@@ -2,4 +2,5 @@
 
 export(boot_p_val)
 export(clustered_se)
+export(t_wild_cluster_boot)
 export(wild_cluster_boot)

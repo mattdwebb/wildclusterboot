@@ -59,15 +59,36 @@ clustered_se <- function(data, model, clusterby, G = NULL, cluster_ids = NULL){
   #Get residuals from lm model
   uhat <- resid(model)
 
-  #TODO: generate sandwich mat for each comb of cluster dimensions, then add subtract and extract SEs
-
+  #Create list of sandwich matrices
   sandwich_list <- mapply(FUN = calc_sandwich_mat, clustervars = clustervars, cluster_ids = cluster_ids, G = G, comb_n = comb_n,
                           MoreArgs = list(X = X, bread = bread, uhat = uhat), SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
-  #Calculate SE and return
+  #Sum up matrices for final sandwich matrix
   sandwich <- Reduce('+', sandwich_list)
 
-  #Take diagonal of sandwich to get SE vector and return it
+  #Spectral decomposition correction
+  if(class(clusterby) == 'formula' | any(sandwich < 0)){
+
+    #Get col and row names
+    cnames <- colnames(sandwich)
+    rnames <- rownames(sandwich)
+
+    #Get eigen values and vectors from sandwich
+    eig <- eigen(sandwich)
+
+    #Zero out negative eigen values
+    eig_vals <- ifelse(eig$values < 0, 0, eig$values)
+
+    #Recreate sandwich matrix
+    sandwich <- eig$vectors %*% diag(eig_vals) %*% t(eig$vectors)
+
+    #Reset column and row names
+    rownames(sandwich) <- rnames
+    colnames(sandwich) <- cnames
+
+  }
+
+  #Take square root of diagonal of sandwich to get SE vector and return it
   se <- sqrt(diag(sandwich))
 
   return(se)
