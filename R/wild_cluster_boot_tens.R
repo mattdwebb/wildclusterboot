@@ -40,7 +40,7 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   short_vars <- model_vars[!model_vars %in% c(x_interest, y_name)]
 
   #This will impose the H0
-  short_data <- data.frame(Y = data[,y_name] - H0* data[,x_interest], X = data[, x_interest])
+  short_data <- setNames(data.frame(cbind(data[,y_name] - H0* data[,x_interest], data[, short_vars])), c(y_name, short_vars))
 
   #Check if short model is just intercept, otherwise create short formula
   if(length(short_vars) == 0){
