@@ -4,7 +4,7 @@
 #' @param model lm object of interest
 #' @param x_interest X paramater of interest
 #' @param clusterby String or formila with name of clusterby variable in data
-#' @param boot_dist Vector of weights for wild bootstrap or string specifying default distribution
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
 #' @param boot_reps Number of repititions for resampling data
 #' @param bootby String with name of bootby variable in data, default is same as clusterby
 #' @param H0 Float of integer inticating the null hypothesis, default is 0
@@ -66,8 +66,17 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   boot_unique <- unique(data[bootby])
 
   #Add weights for each group
-  weights <- data.frame(matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
-                               nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
+  weights <- if(class(boot_dist) != 'function'){
+
+    data.frame(matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
+                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
+
+  } else{
+
+    data.frame(matrix(boot_dist(n = nrow(boot_unique)*boot_reps),
+                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
+
+  }
 
   weight_names <- names(weights)
   boot_weights <- cbind(boot_unique, weights)
