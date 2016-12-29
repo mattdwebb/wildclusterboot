@@ -8,9 +8,10 @@
 #' @param boot_reps Number of repititions for resampling data
 #' @param bootby String with name of bootby variable in data, default is same as clusterby
 #' @param H0 Float of integer inticating the null hypothesis, default is 0
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps
 #' @return p-value corresponding to bootstrap result
 #' @export
-t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0){
+t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE){
 
   #Check if model is class lm
   if(class(model) != 'lm'){
@@ -66,16 +67,26 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   boot_unique <- unique(data[bootby])
 
   #Add weights for each group
-  weights <- if(class(boot_dist) != 'function'){
+  weights <- if(class(boot_dist) != 'function' & !enum){
 
     data.frame(matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
                       nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
+
+  } else if(class(boot_dist) != 'function' & enum){
+
+    data.frame(t(expand.grid(rep(x = list(boot_dist), times = nrow(boot_unique)))))
 
   } else{
 
     data.frame(matrix(boot_dist(n = nrow(boot_unique)*boot_reps),
                       nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
 
+  }
+
+  boot_reps <- if(enum){
+    ncol(weights)
+  } else{
+    boot_reps
   }
 
   weight_names <- names(weights)
@@ -152,6 +163,8 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
 
   p_value <- t_boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
                           clusterby = clusterby, x_interest = x_interest, boot_reps = boot_reps)
+
+  return(p_value)
 
 }
 
