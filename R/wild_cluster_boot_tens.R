@@ -8,10 +8,11 @@
 #' @param boot_reps Number of repititions for resampling data
 #' @param bootby String with name of bootby variable in data, default is same as clusterby
 #' @param H0 Float of integer inticating the null hypothesis, default is 0
-#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @param racine Boolean indicating whether or not to use Racine-MacKinnon correction
 #' @return p-value corresponding to bootstrap result
 #' @export
-t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE){
+t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE, racine = FALSE){
 
   #Check if model is class lm
   if(class(model) != 'lm'){
@@ -162,7 +163,8 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   beta <- B[x_ind, ]
 
   p_value <- t_boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
-                          clusterby = clusterby, x_interest = x_interest, boot_reps = boot_reps)
+                          clusterby = clusterby, x_interest = x_interest, boot_reps = boot_reps,
+                          enum = enum, racine = racine)
 
   return(p_value)
 
@@ -203,9 +205,11 @@ eigen_fix <- function(sandwich){
 #' @param clusterby String or formula indicating variable in data for clustering
 #' @param x_interest X paramater of interest
 #' @param boot_reps Integer for number of replications
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @param racine Boolean indicating whether or not to use Racine-MacKinnon correction
 #' @return Bootstrap p-value
 #'
-t_boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_reps){
+t_boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_reps, enum, racine){
 
   #Calculate t vector
   t <- (beta - H0)/se
@@ -215,9 +219,24 @@ t_boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_
   beta0 <- coef(model)
   t0 <- (beta0[x_interest] - H0)/se0[x_interest]
 
-  #Calculate p-value
-  prop <- sum(t0 < t)/boot_reps
-  p <- 2*min(prop, 1 - prop)
+  p <- if(enum){
+
+    p_low <- sum(abs(t0) >= abs(t))/boot_reps
+    p_high <- prop_low + 1/boot_reps
+
+    p <- if (racine) {
+      p_racine <- runif(1)*(p_high - p_low) + p_low
+      cbind(p_low, p_high, p_racine)
+    } else {
+      cbind(p_low, p_high)
+    }
+
+  } else{
+
+    prop <- sum(t0 <= t)/boot_reps
+    2*min(prop, 1 - prop)
+
+  }
 
   return(p)
 
