@@ -62,6 +62,30 @@ test_that('multiply_cluster_meat calculates correct tensor', {
 
 })
 
+test_that('gen_boot_weights calculates correct matrix', {
+
+  set.seed(42)
+  boot_dist <- c(-1, 1)
+  boot_reps <- 4
+  boot_unique <- matrix(c(1,2))
+  enum <- FALSE
+
+  test_weight_mat <- gen_boot_weights(boot_dist = boot_dist, boot_unique = boot_unique, boot_reps = boot_reps, enum = enum)
+  weight_mat <- data.frame(matrix(c(1, 1, -1, 1, 1, 1, 1, -1), ncol = 4))
+
+  expect_equal(test_weight_mat, weight_mat)
+
+  enum <- TRUE
+  boot_unique <- matrix(c(1,2))
+  test_weight_mat <- gen_boot_weights(boot_dist = boot_dist, boot_unique = boot_unique, boot_reps = boot_reps, enum = enum)
+  weight_mat <- data.frame(matrix(c(-1, -1, 1, -1, -1, 1, 1, 1), ncol = 4))
+  row.names(weight_mat) <- c('Var1', 'Var2')
+
+  expect_equal(test_weight_mat, weight_mat)
+
+
+})
+
 test_that('cluster_meat calculates correct tensor', {
 
   x <- matrix(c(1, 1, 1, 2, 2, 2), ncol = 2, nrow = 3)
