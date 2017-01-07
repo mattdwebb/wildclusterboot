@@ -68,21 +68,7 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   boot_unique <- unique(data[bootby])
 
   #Add weights for each group
-  weights <- if(class(boot_dist) != 'function' & !enum){
-
-    data.frame(matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
-                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
-
-  } else if(class(boot_dist) != 'function' & enum){
-
-    data.frame(t(expand.grid(rep(x = list(boot_dist), times = nrow(boot_unique)))))
-
-  } else{
-
-    data.frame(matrix(boot_dist(n = nrow(boot_unique)*boot_reps),
-                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
-
-  }
+  weights <- gen_boot_weights(boot_dist = boot_dist, boot_unique = boot_unique, boot_reps = boot_reps, enum = enum)
 
   boot_reps <- if(enum){
     ncol(weights)
@@ -192,6 +178,36 @@ eigen_fix <- function(sandwich){
   }
 
   return(sandwich)
+
+}
+
+#' Generate bootstrap weight matrix
+#'
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
+#' @param boot_unique Matrix of unique group IDs
+#' @param boot_reps Number of repititions for resampling data
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @return Matrix of bootstrap weights
+#'
+gen_boot_weights <- function(boot_dist, boot_unique, boot_reps, enum){
+
+  weights <- if(class(boot_dist) != 'function' & !enum){
+
+    data.frame(matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
+                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
+
+  } else if(class(boot_dist) != 'function' & enum){
+
+    data.frame(t(expand.grid(rep(x = list(boot_dist), times = nrow(boot_unique)))))
+
+  } else{
+
+    data.frame(matrix(boot_dist(n = nrow(boot_unique)*boot_reps),
+                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE))
+
+  }
+
+  return(weights)
 
 }
 
