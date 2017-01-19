@@ -9,15 +9,20 @@
 #' @param bootby String with name of bootby variable in data, default is same as clusterby
 #' @param H0 Float of integer inticating the null hypothesis, default is 0
 #' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
-#' @param racine Boolean indicating whether or not to use Racine-MacKinnon correction
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @param bound Boolean indicating whether or not to use bound-MacKinnon correction
 #' @return p-value corresponding to bootstrap result
 #' @export
 t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE, racine = FALSE){
+t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE, absval = FALSE, bound = c('upper', 'lower', 'mid', 'uniform', 'density')){
 
   #Check if model is class lm
   if(class(model) != 'lm'){
     stop('Model variable must be lm class')
   }
+
+  #Check to ensure no incorrect bound values supplied
+  bound <- if(missing(bound)) 'upper' else match.arg(bound, several.ok = TRUE)
 
   #If boot_dist is character, resolve to default distribution
   if(class(boot_dist) == 'character'){
@@ -149,8 +154,8 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
   beta <- B[x_ind, ]
 
   p_value <- t_boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
-                          clusterby = clusterby, x_interest = x_interest, boot_reps = boot_reps,
-                          enum = enum, racine = racine)
+                          clusterby = clusterby, x_interest = x_interest,
+                          boot_reps = boot_reps, bound = bound, absval = absval)
 
   return(p_value)
 
@@ -221,38 +226,54 @@ gen_boot_weights <- function(boot_dist, boot_unique, boot_reps, enum){
 #' @param clusterby String or formula indicating variable in data for clustering
 #' @param x_interest X paramater of interest
 #' @param boot_reps Integer for number of replications
-#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
-#' @param racine Boolean indicating whether or not to use Racine-MacKinnon correction
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @param bound Character or character vector indicating which bootstrap p-values to generate
 #' @return Bootstrap p-value
 #'
-t_boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_reps, enum, racine){
+t_boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_reps, absval, bound){
 
   #Calculate t vector
-  t <- (beta - H0)/se
+  t <- if(absval) abs((beta - H0)/se) else (beta - H0)/se
 
   #Calculate initial t
   se0 <- clustered_se(data = data, model = model, clusterby = clusterby)
   beta0 <- coef(model)
-  t0 <- (beta0[x_interest] - H0)/se0[x_interest]
+  t0 <- if(absval) abs((beta0[x_interest] - H0)/se0[x_interest]) else (beta0[x_interest] - H0)/se0[x_interest]
 
-  p <- if(enum){
+  p <- sapply(bound, p_eval, t = t, t0 = t0,  boot_reps = boot_reps, absval = absval)
 
-    p_low <- sum(abs(t0) >= abs(t))/boot_reps
-    p_high <- prop_low + 1/boot_reps
+  return(p)
 
-    p <- if (racine) {
-      p_racine <- runif(1)*(p_high - p_low) + p_low
-      cbind(p_low, p_high, p_racine)
-    } else {
-      cbind(p_low, p_high)
-    }
+}
 
-  } else{
+#' Calculate bootstrap p-value
+#'
+#' @param t Vector of t-values
+#' @param t0 Original t-value
+#' @param boot_reps Integer for number of replications
+#' @param bound Boolean indicating whether or not to use bound-MacKinnon correction
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @return Bootstrap p-value
+#'
+p_eval <- function(t, t0, boot_reps, bound, absval){
 
-    prop <- sum(t0 <= t)/boot_reps
-    2*min(prop, 1 - prop)
+  #Get proportion below and equal, while accounting for rounding errors
+  prop_less <- sum((t - t0) < -1e-12)/boot_reps
+  prop_equal <- sum(abs(t0 - t) < 1e-12)/boot_reps
 
-  }
+  prop <- switch (bound,
+    'upper' = prop_less + prop_equal,
+    'lower' = prop_less,
+    'mid' = prop_less + prop_equal/2,
+    'uniform' = prop_less + runif(1)*prop_equal,
+    'density' = density_p_val(t = t, t0 = t0, boot_reps = boot_reps)
+  )
+
+  p <- if(absval) prop else 2*min(prop, 1 - prop)
+
+  return(p)
+
+}
 
   return(p)
 
