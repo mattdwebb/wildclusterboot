@@ -268,7 +268,7 @@ p_eval <- function(t, t0, boot_reps, bound, absval){
     'density' = density_p_val(t = t, t0 = t0, boot_reps = boot_reps)
   )
 
-  p <- if(absval) prop else 2*min(prop, 1 - prop)
+  p <- if(absval | bound == 'density') prop else 2*min(prop, 1 - prop)
 
   return(p)
 
