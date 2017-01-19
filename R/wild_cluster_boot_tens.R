@@ -274,6 +274,24 @@ p_eval <- function(t, t0, boot_reps, bound, absval){
 
 }
 
+#' Calculate density p-value
+#'
+#' @param t Vector of t-values
+#' @param t0 Original t-value
+#' @param boot_reps Integer for number of replications
+#' @return Bootstrap p-value
+#'
+density_p_val <- function(t, t0, boot_reps){
+
+  o <- 1/(1.575*boot_reps^(4/9))
+
+  gauss <- (t0-t)*o
+
+  gauss <- ifelse(gauss > 10, 10, gauss)
+  gauss <- ifelse(gauss < -10, -10, gauss)
+
+  p <- sum(pnorm(q = gauss))/boot_reps
+
   return(p)
 
 }
