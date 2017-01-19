@@ -13,7 +13,6 @@
 #' @param bound Boolean indicating whether or not to use bound-MacKinnon correction
 #' @return p-value corresponding to bootstrap result
 #' @export
-t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE, racine = FALSE){
 t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE, absval = FALSE, bound = c('upper', 'lower', 'mid', 'uniform', 'density')){
 
   #Check if model is class lm
@@ -135,7 +134,7 @@ t_wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, b
 
   sandwich <- Reduce('+', sandwich_list)
 
-  if(class(clusterby) == 'formula' | any(sandwich < 0)){
+  if(class(clusterby) == 'formula' & any(sandwich < 0)){
 
     #Run correction on individual sandwich matrices
     eigen_sandwich <- apply(X = sandwich, MARGIN = 2, FUN = eigen_fix)
@@ -216,7 +215,7 @@ gen_boot_weights <- function(boot_dist, boot_unique, boot_reps, enum){
 
 }
 
-#' Calculate bootstrap p-value
+#' Calculate bootstrap p-values
 #'
 #' @param se Vector of standard errors
 #' @param beta Vector of coefficients for x of interest
