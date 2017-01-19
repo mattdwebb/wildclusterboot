@@ -5,7 +5,8 @@
 \title{Performs wild clustered bootstrap}
 \usage{
 t_wild_cluster_boot(data, model, x_interest, clusterby, boot_dist, boot_reps,
-  bootby = clusterby, H0 = 0)
+  bootby = clusterby, H0 = 0, enum = FALSE, absval = FALSE,
+  bound = c("upper", "lower", "mid", "uniform", "density"))
 }
 \arguments{
 \item{data}{Dataframe with all data, including group indices}
@@ -16,13 +17,19 @@ t_wild_cluster_boot(data, model, x_interest, clusterby, boot_dist, boot_reps,
 
 \item{clusterby}{String or formila with name of clusterby variable in data}
 
-\item{boot_dist}{Vector of weights for wild bootstrap or string specifying default distribution}
+\item{boot_dist}{Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"}
 
 \item{boot_reps}{Number of repititions for resampling data}
 
 \item{bootby}{String with name of bootby variable in data, default is same as clusterby}
 
 \item{H0}{Float of integer inticating the null hypothesis, default is 0}
+
+\item{enum}{Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds}
+
+\item{absval}{Boolean indicating whether or not to use absolute valued t-statistics}
+
+\item{bound}{Boolean indicating whether or not to use bound-MacKinnon correction}
 }
 \value{
 p-value corresponding to bootstrap result
