@@ -2,9 +2,10 @@
 % Please edit documentation in R/wild_cluster_boot_tens.R
 \name{t_boot_p_val}
 \alias{t_boot_p_val}
-\title{Calculate bootstrap p-value}
+\title{Calculate bootstrap p-values}
 \usage{
-t_boot_p_val(se, beta, H0, data, model, clusterby, x_interest, boot_reps)
+t_boot_p_val(se, beta, H0, data, model, clusterby, x_interest, boot_reps,
+  absval, bound)
 }
 \arguments{
 \item{se}{Vector of standard errors}
@@ -22,11 +23,15 @@ t_boot_p_val(se, beta, H0, data, model, clusterby, x_interest, boot_reps)
 \item{x_interest}{X paramater of interest}
 
 \item{boot_reps}{Integer for number of replications}
+
+\item{absval}{Boolean indicating whether or not to use absolute valued t-statistics}
+
+\item{bound}{Character or character vector indicating which bootstrap p-values to generate}
 }
 \value{
 Bootstrap p-value
 }
 \description{
-Calculate bootstrap p-value
+Calculate bootstrap p-values
 }
 
