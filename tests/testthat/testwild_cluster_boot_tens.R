@@ -106,7 +106,7 @@ test_that('t_boot_p_val returns correct p-values', {
                              clusterby = clusterby, x_interest = x_interest,
                              boot_reps = boot_reps, absval = absval, bound = bound)
 
-  p_val <- c('upper' = 8/12, 'lower' = 6/12, 'mid' = 7/12, 'uniform' = (6+0.914806*2)/12, 'density' = 2*0.2666798)
+  p_val <- c('upper' = 8/12, 'lower' = 6/12, 'mid' = 7/12, 'uniform' = (6+0.914806*2)/12, 'density' = 0.5096198)
 
   expect_equal(test_p_val, p_val, tolerance = 0.00001)
 
@@ -120,7 +120,7 @@ test_that('density_p_val returns correct p-values', {
 
   test_p_val <- density_p_val(t = t, t0 = t0, boot_reps = boot_reps)
 
-  p_val <- 0.2666798
+  p_val <- 0.2548099
 
   expect_equal(test_p_val, p_val, tolerance = 0.00001)
 

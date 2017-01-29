@@ -268,7 +268,7 @@ p_eval <- function(t, t0, boot_reps, bound, absval){
     'density' = density_p_val(t = t, t0 = t0, boot_reps = boot_reps)
   )
 
-  p <- if(absval | bound == 'density') prop else 2*min(prop, 1 - prop)
+  p <- if(absval) prop else 2*min(prop, 1 - prop)
 
   return(p)
 
@@ -283,16 +283,39 @@ p_eval <- function(t, t0, boot_reps, bound, absval){
 #'
 density_p_val <- function(t, t0, boot_reps){
 
-  o <- 1/(1.575*boot_reps^(4/9))
+  h <- mlcv(t)
 
-  gauss <- (t0-t)*o
-
-  gauss <- ifelse(gauss > 10, 10, gauss)
-  gauss <- ifelse(gauss < -10, -10, gauss)
+  gauss <- (t0-t)/h
 
   p <- sum(pnorm(q = gauss))/boot_reps
 
   return(p)
+
+}
+
+#' Calculate best kernel for density function
+#'
+#' @param t Vector of t-values
+#'
+
+mlcv <- function(t) {
+
+  n <- length(t)
+
+  kdenest.mlcv <- function(h) {
+
+    p_val <- sapply(X = t, FUN = function(x, t) sum(dnorm((x-t)/h), -dnorm(0))/((n-1)*h), t = t)
+
+    p <- if(h > 0) {
+      -sum(log(ifelse(p_val > 0, p_val,.Machine$double.xmin)))/n
+    } else {
+      .Machine$double.xmax
+    }
+
+    return(p)
+  }
+
+  return(nlm(kdenest.mlcv, 1.06*sd(t)*n^{-1/5})$estimate*n^{-2/15})
 
 }
 
