@@ -9,13 +9,13 @@ test_that('wild_y calculates correct matrix', {
   x_interest <- 'X'
   H0 <- 0
 
-  wild_data <- wild_data(data = data, model = model, x_interest = x_interest, H0 = H0)
+  data_wild <- wild_data(data = data, model = model, x_interest = x_interest, H0 = H0)
   bootby <- 'clusterby'
   boot_dist <- 'two_pt'
   boot_reps <- 4
   enum <- F
 
-  test_y_wild <- wild_y(wild_data = wild_data, bootby = bootby, boot_dist = boot_dist,
+  test_y_wild <- wild_y(data_wild = data_wild, bootby = bootby, boot_dist = boot_dist,
                         boot_reps = boot_reps, enum = enum)
 
   y_wild <- matrix(c(2.197272152,
