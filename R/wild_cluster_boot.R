@@ -203,19 +203,22 @@ wild_y <- function(wild_data, bootby, boot_dist, boot_reps, enum){
 
   bootby <- if(class(bootby) == 'formula') all.vars(bootby) else bootby
 
-  boot_unique <- wild_data %>%
-     dplyr::distinct_(.dots = bootby)
+  #Create unique vector of group ids
+  boot_unique <- unique(wild_data[bootby])
 
-  boot_reps <- if(enum) ncol(weights) else boot_reps
+  boot_reps <- if(enum) 2^nrow(boot_unique) else boot_reps
 
+  # #Add weights for each group
   weights <- gen_boot_weights(boot_dist = boot_dist, boot_unique = boot_unique, boot_reps = boot_reps, enum = enum) %>%
-    setNames(paste0('wild_boot_weight_', 1:boot_reps)) %>%
-    dplyr::bind_cols(boot_unique) %>%
-    dplyr::right_join(wild_data, by = bootby) %>%
-    dplyr::mutate_at(dplyr::vars(dplyr::starts_with('wild_boot_weight')), dplyr::funs(fitted_data + .*uhat)) %>%
-    dplyr::select(-dplyr::one_of(names(wild_data))) %>%
-    as.matrix()
+    setNames(paste0('wild_boot_weight_', 1:boot_reps))
 
-  return(weights)
+  weight_names <- names(weights)
+  boot_weights <- cbind(boot_unique, weights)
+  expanded_weights <- merge(x = wild_data, y = boot_weights)
+
+  #Generate matrix of y-wild values
+  y_wild <- as.matrix(expanded_weights[,weight_names]) * wild_data[,'uhat'] + wild_data[,'fitted_data']
+
+  return(y_wild)
 
 }
