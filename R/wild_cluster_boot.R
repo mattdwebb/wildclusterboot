@@ -21,24 +21,6 @@ wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boo
     stop('Model variable must be lm class')
   }
 
-  #TODO: Split this out as a separate function
-  #If boot_dist is character, resolve to default distribution
-  if(class(boot_dist) == 'character'){
-
-    default_dist <- list(six_pt = c(-sqrt(3/2),-sqrt(2/2),-sqrt(1/2),sqrt(1/2),sqrt(2/2),sqrt(3/2)),
-                         two_pt = c(-1,1))
-
-    if(!boot_dist %in% names(default_dist)){
-
-      error_message <- paste('Only the following default distributions supported:', paste(names(default_dist), collapse = ', '))
-      stop(error_message)
-
-    }
-
-    boot_dist <- default_dist[[boot_dist]]
-
-  }
-
   #Check to ensure no incorrect bound values supplied
   bound <- if(missing(bound)) 'upper' else match.arg(bound, several.ok = TRUE)
 
@@ -46,10 +28,10 @@ wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boo
   data <- eval(model$call$data)
 
   #Get wild bootstrap fitted data
-  wild_data <- wild_data(data = data, model = model, x_interest = x_interest, H0 = H0)
+  data_wild <- wild_data(data = data, model = model, x_interest = x_interest, H0 = H0)
 
   #Generate matrix of y-wild values
-  y_wild <- wild_y(wild_data = wild_data, bootby = bootby, boot_dist = boot_dist, boot_reps = boot_reps, enum = enum)
+  y_wild <- wild_y(data_wild = data_wild, bootby = bootby, boot_dist = boot_dist, boot_reps = boot_reps, enum = enum)
 
   #Get model matrix from model
   X <- model.matrix(model)
@@ -88,35 +70,18 @@ wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boo
 
   }
 
-  #Set out k and n variables from model matrix
-  n <- nrow(X)
-  k <- ncol(X)
+  cluster_ind <- lapply(clustervars, function(clust) as.numeric(factor(clust, levels = unique(clust)))-1) %>% data.frame() %>% as.matrix()
+  comb <- (-1)^(as.numeric(comb_n)+1)
+  G <- sapply(clustervars, function(x) length(unique(x)))
+  U <- data.frame(E)
 
-  #Calculate sandwitch matrix for each cluster combinations
-  sandwich_list <- suppressWarnings(mapply(FUN = cluster_sandwich, clustervars = clustervars, comb_n = comb_n,
-                                           MoreArgs = list(X = X, bread = bread, x_ind = x_ind, E = E, k = k, boot_reps = boot_reps, n = n), SIMPLIFY = FALSE))
-
-  sandwich <- Reduce('+', sandwich_list)
-
-  if(class(clusterby) == 'formula' & any(sandwich < 0)){
-
-    #Run correction on individual sandwich matrices
-    eigen_sandwich <- apply(X = sandwich, MARGIN = 2, FUN = eigen_fix)
-
-    #Reform array and extract SE
-    sandwich_array <- array(eigen_sandwich, dim = c(k, k, boot_reps))
-    se <- sqrt(sandwich_array[x_ind, x_ind, ])
-
-  } else {
-
-    #Extract SE
-    se <- sqrt(as.vector(sandwich[x_ind, ,x_ind]))
-  }
+  sandwich_array_cpp <- mapply(uhat = U, FUN = crve_sandwich, MoreArgs = list(X = X, bread = bread, clusterby = cluster_ind, comb, G))
+  se_cpp <- sqrt(sandwich_array_cpp[x_ind^2,])
 
   #Get beta for x of interest
   beta <- B[x_ind, ]
 
-  p_value <- t_boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
+  p_value <- t_boot_p_val(se = se_cpp, beta = beta, H0 = H0, data = data, model = model,
                           clusterby = clusterby, x_interest = x_interest,
                           boot_reps = boot_reps, bound = bound, absval = absval)
 
@@ -174,14 +139,14 @@ wild_data <- function(data, model, x_interest, H0){
 
 #' Return matrix of wild response variables
 #'
-#' @param wild_data Dataframe of original data with wild fitted data and residuals
-#' @param bootby string or formula indicating variables in wild_data to group bootstrap weights by
+#' @param data_wild Dataframe of original data with wild fitted data and residuals
+#' @param bootby string or formula indicating variables in data_wild to group bootstrap weights by
 #' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
 #' @param boot_reps Number of repititions for resampling data
 #' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps
 #' @return Matrix of bootstrap weights
 #'
-wild_y <- function(wild_data, bootby, boot_dist, boot_reps, enum){
+wild_y <- function(data_wild, bootby, boot_dist, boot_reps, enum){
 
   #TODO: Split this out as a separate function
   #If boot_dist is character, resolve to default distribution
@@ -204,7 +169,7 @@ wild_y <- function(wild_data, bootby, boot_dist, boot_reps, enum){
   bootby <- if(class(bootby) == 'formula') all.vars(bootby) else bootby
 
   #Create unique vector of group ids
-  boot_unique <- unique(wild_data[bootby])
+  boot_unique <- unique(data_wild[bootby])
 
   boot_reps <- if(enum) 2^nrow(boot_unique) else boot_reps
 
@@ -214,10 +179,10 @@ wild_y <- function(wild_data, bootby, boot_dist, boot_reps, enum){
 
   weight_names <- names(weights)
   boot_weights <- cbind(boot_unique, weights)
-  expanded_weights <- merge(x = wild_data, y = boot_weights)
+  expanded_weights <- merge(x = data_wild, y = boot_weights)
 
   #Generate matrix of y-wild values
-  y_wild <- as.matrix(expanded_weights[,weight_names]) * wild_data[,'uhat'] + wild_data[,'fitted_data']
+  y_wild <- as.matrix(expanded_weights[,weight_names]) * data_wild[,'uhat'] + data_wild[,'fitted_data']
 
   return(y_wild)
 
