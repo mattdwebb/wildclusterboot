@@ -9,3 +9,15 @@ eigen_fix_cpp <- function(sandwich) {
     .Call('wildclusterboot_eigen_fix_cpp', PACKAGE = 'wildclusterboot', sandwich)
 }
 
+bread_cpp <- function(X) {
+    .Call('wildclusterboot_bread_cpp', PACKAGE = 'wildclusterboot', X)
+}
+
+beta_cpp <- function(X, bread, y_wild) {
+    .Call('wildclusterboot_beta_cpp', PACKAGE = 'wildclusterboot', X, bread, y_wild)
+}
+
+y_weights <- function(fitted_data, uhat, boot_weights, bootind) {
+    .Call('wildclusterboot_y_weights', PACKAGE = 'wildclusterboot', fitted_data, uhat, boot_weights, bootind)
+}
+

@@ -40,9 +40,9 @@ wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boo
   x_ind <- grep(x_interest, colnames(X))
 
   #Create bread, B and E matrices
-  bread <- solve(crossprod(X))
-  B <- bread %*% t(X) %*% y_wild
-  E <- y_wild - X %*% B
+  bread <- bread_cpp(X)
+  beta <- beta_cpp(X, bread, y_wild)
+  E <- y_wild - X %*% beta
 
   #Check if supplied clusterby is a formula
   if(class(clusterby) == 'formula'){

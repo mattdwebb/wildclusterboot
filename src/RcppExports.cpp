@@ -33,3 +33,41 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// bread_cpp
+arma::mat bread_cpp(arma::mat X);
+RcppExport SEXP wildclusterboot_bread_cpp(SEXP XSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    rcpp_result_gen = Rcpp::wrap(bread_cpp(X));
+    return rcpp_result_gen;
+END_RCPP
+}
+// beta_cpp
+arma::mat beta_cpp(arma::mat X, arma::mat bread, arma::mat y_wild);
+RcppExport SEXP wildclusterboot_beta_cpp(SEXP XSEXP, SEXP breadSEXP, SEXP y_wildSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type bread(breadSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type y_wild(y_wildSEXP);
+    rcpp_result_gen = Rcpp::wrap(beta_cpp(X, bread, y_wild));
+    return rcpp_result_gen;
+END_RCPP
+}
+// y_weights
+arma::mat y_weights(arma::vec fitted_data, arma::uvec uhat, arma::mat boot_weights, arma::uvec bootind);
+RcppExport SEXP wildclusterboot_y_weights(SEXP fitted_dataSEXP, SEXP uhatSEXP, SEXP boot_weightsSEXP, SEXP bootindSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type fitted_data(fitted_dataSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type uhat(uhatSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type boot_weights(boot_weightsSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type bootind(bootindSEXP);
+    rcpp_result_gen = Rcpp::wrap(y_weights(fitted_data, uhat, boot_weights, bootind));
+    return rcpp_result_gen;
+END_RCPP
+}
