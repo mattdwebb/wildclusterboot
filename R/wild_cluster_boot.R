@@ -41,47 +41,15 @@ wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boo
 
   #Create bread, B and E matrices
   bread <- bread_cpp(X)
-  beta <- beta_cpp(X, bread, y_wild)
-  E <- y_wild - X %*% beta
+  B <- beta_cpp(X, bread, y_wild)
+  E <- y_wild - X %*% B
 
-  #Check if supplied clusterby is a formula
-  if(class(clusterby) == 'formula'){
-
-    #extract variables from formula
-    form_vars <- all.vars(clusterby)
-
-    #Create combinations of group dimensions as well as concatenated names
-    comb_list <- lapply(X = 1:length(form_vars), FUN = combn, x = form_vars, simplify = FALSE)
-    comb_vars <- unlist(comb_list, recursive = FALSE)
-    comb_names <- lapply(X = comb_vars, FUN = paste0, collapse = '')
-    comb_n <- lapply(X = comb_vars, length)
-
-    #Create sub-dataframes for each combination of group dimensions
-    data_combs <- lapply(X = comb_vars, function(comb) data[comb])
-
-    #Create matrix of all group dimension combinations
-    clustervars <- lapply(X = data_combs, FUN = Reduce, f = paste0)
-    names(clustervars) <- comb_names
-
-  } else{
-
-    clustervars <- data[clusterby]
-    comb_n <- 1
-
-  }
-
-  cluster_ind <- lapply(clustervars, function(clust) as.numeric(factor(clust, levels = unique(clust)))-1) %>% data.frame() %>% as.matrix()
-  comb <- (-1)^(as.numeric(comb_n)+1)
-  G <- sapply(clustervars, function(x) length(unique(x)))
-  U <- data.frame(E)
-
-  sandwich_array_cpp <- mapply(uhat = U, FUN = crve_sandwich, MoreArgs = list(X = X, bread = bread, clusterby = cluster_ind, comb, G))
-  se_cpp <- sqrt(sandwich_array_cpp[x_ind^2,])
+  se <- wild_se(data_wild, E, X, bread, clusterby, x_ind)
 
   #Get beta for x of interest
   beta <- B[x_ind, ]
 
-  p_value <- t_boot_p_val(se = se_cpp, beta = beta, H0 = H0, data = data, model = model,
+  p_value <- boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
                           clusterby = clusterby, x_interest = x_interest,
                           boot_reps = boot_reps, bound = bound, absval = absval)
 
@@ -170,6 +138,7 @@ wild_y <- function(data_wild, bootby, boot_dist, boot_reps, enum){
 
   #Create unique vector of group ids
   boot_unique <- unique(data_wild[bootby])
+  boot_paste <- Reduce(paste0, data_wild[bootby])
   boot_ind <- as.numeric(factor(boot_paste, levels = unique(boot_paste)))-1
 
   boot_reps <- if(enum) 2^nrow(boot_unique) else boot_reps
@@ -188,6 +157,49 @@ wild_y <- function(data_wild, bootby, boot_dist, boot_reps, enum){
   return(y_wild)
 
 }
+#' Calculate vector of clustered standard errors
+#'
+#' @param data_wild Dataframe of original data with wild fitted data and residuals
+#' @param E Matrix of residuals, which each column representing a bootstrap replication
+#' @param X Model matrix
+#' @param bread X*X' matrix
+#' @param clusterby String or formila with name of clusterby variable in data
+#' @param x_ind integer indicating the index of x of interest in model matrix
+#' @return Vector of standard errors
+#'
+wild_se <- function(data_wild, E, X, bread, clusterby, x_ind){
+
+  clusterby_list <- if(class(clusterby) == 'formula') all.vars(clusterby) else clusterby
+  comb_vars <- unlist(lapply(X = 1:length(clusterby_list), FUN = combn, x = clusterby_list, simplify = FALSE), recursive = FALSE)
+
+  cluster_ind <- sapply(X = comb_vars, FUN = crve_ind, data_wild = data_wild)
+  comb <- (-1)^(sapply(X = comb_vars, length)+1)
+  G <- apply(cluster_ind, 2, function(x) length(unique(x)))
+
+  sandwich_array_cpp <- mapply(uhat = data.frame(E), FUN = crve_sandwich, MoreArgs = list(X = X, bread = bread, clusterby = cluster_ind, comb, G))
+  se_cpp <- sqrt(sandwich_array_cpp[x_ind^2,])
+
+  return(se_cpp)
+
+}
+
+
+#' Generate bootstrap weight matrix
+#'
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
+#' @param boot_unique Matrix of unique group IDs
+#' @param boot_reps Number of repititions for resampling data
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @return Matrix of bootstrap weights
+#'
+crve_ind <- function(data_wild, clusterby){
+
+  clustervars <- Reduce(data_wild[clusterby], f = paste0)
+  cluster_ind <- as.numeric(factor(clustervars, levels = unique(clustervars)))-1
+
+}
+
+
 #' Calculate bootstrap p-values
 #'
 #' @param se Vector of standard errors
