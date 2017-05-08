@@ -58,13 +58,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // y_weights
-arma::mat y_weights(arma::vec fitted_data, arma::uvec uhat, arma::mat boot_weights, arma::uvec bootind);
+arma::mat y_weights(arma::vec fitted_data, arma::vec uhat, arma::mat boot_weights, arma::uvec bootind);
 RcppExport SEXP wildclusterboot_y_weights(SEXP fitted_dataSEXP, SEXP uhatSEXP, SEXP boot_weightsSEXP, SEXP bootindSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type fitted_data(fitted_dataSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type uhat(uhatSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type uhat(uhatSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type boot_weights(boot_weightsSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type bootind(bootindSEXP);
     rcpp_result_gen = Rcpp::wrap(y_weights(fitted_data, uhat, boot_weights, bootind));
