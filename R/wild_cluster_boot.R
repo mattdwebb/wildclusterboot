@@ -8,7 +8,7 @@
 #' @param boot_reps Number of repititions for resampling data
 #' @param bootby String with name of bootby variable in data, default is same as clusterby
 #' @param H0 Float of integer inticating the null hypothesis, default is 0
-#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations
 #' @param absval Boolean indicating whether or not to use absolute valued t-statistics
 #' @param bound Boolean indicating whether or not to use bound-MacKinnon correction
 #' @return p-value corresponding to bootstrap result
@@ -25,7 +25,7 @@ wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boo
   bound <- if(missing(bound)) 'upper' else match.arg(bound, several.ok = TRUE)
 
   #Get dataframe from model
-  data <- eval(model$call$data)
+  data <- if(missing(data)) eval(model$call$data) else data
 
   #Get wild bootstrap fitted data
   data_wild <- wild_data(data = data, model = model, x_interest = x_interest, H0 = H0)
@@ -144,19 +144,45 @@ wild_y <- function(data_wild, bootby, boot_dist, boot_reps, enum){
   boot_reps <- if(enum) 2^nrow(boot_unique) else boot_reps
 
   # #Add weights for each group
-  weights <- gen_boot_weights(boot_dist = boot_dist, boot_unique = boot_unique, boot_reps = boot_reps, enum = enum) %>%
-    setNames(paste0('wild_boot_weight_', 1:boot_reps))
-
-  weight_names <- names(weights)
-  boot_weights <- cbind(boot_unique, weights)
-  expanded_weights <- merge(x = data_wild, y = boot_weights)
+  weights <- gen_boot_mat(boot_dist = boot_dist, boot_unique = boot_unique, boot_reps = boot_reps, enum = enum)
 
   #Generate matrix of y-wild values
-  y_wild <- as.matrix(expanded_weights[,weight_names]) * data_wild[,'uhat'] + data_wild[,'fitted_data']
+  y_wild <- y_weights(data_wild[,'fitted_data'], data_wild[,'uhat'], weights, boot_ind)
 
   return(y_wild)
 
 }
+
+#' Generate bootstrap weight matrix
+#'
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
+#' @param boot_unique Matrix of unique group IDs
+#' @param boot_reps Number of repititions for resampling data
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @return Matrix of bootstrap weights
+#'
+gen_boot_mat <- function(boot_dist, boot_unique, boot_reps, enum){
+
+  weights <- if(class(boot_dist) != 'function' & !enum){
+
+    matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
+                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE)
+
+  } else if(class(boot_dist) != 'function' & enum){
+
+    t(expand.grid(rep(x = list(boot_dist), times = nrow(boot_unique))))
+
+  } else{
+
+    matrix(boot_dist(n = nrow(boot_unique)*boot_reps),
+           nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE)
+
+  }
+
+  return(weights)
+
+}
+
 #' Calculate vector of clustered standard errors
 #'
 #' @param data_wild Dataframe of original data with wild fitted data and residuals
