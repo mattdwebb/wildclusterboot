@@ -170,6 +170,7 @@ wild_y <- function(data_wild, bootby, boot_dist, boot_reps, enum){
 
   #Create unique vector of group ids
   boot_unique <- unique(data_wild[bootby])
+  boot_ind <- as.numeric(factor(boot_paste, levels = unique(boot_paste)))-1
 
   boot_reps <- if(enum) 2^nrow(boot_unique) else boot_reps
 
@@ -185,5 +186,108 @@ wild_y <- function(data_wild, bootby, boot_dist, boot_reps, enum){
   y_wild <- as.matrix(expanded_weights[,weight_names]) * data_wild[,'uhat'] + data_wild[,'fitted_data']
 
   return(y_wild)
+
+}
+#' Calculate bootstrap p-values
+#'
+#' @param se Vector of standard errors
+#' @param beta Vector of coefficients for x of interest
+#' @param H0 Float of integer inticating the null hypothesis, default is 0
+#' @param data Dataframe of initial data
+#' @param model lm object of interest
+#' @param clusterby String or formula indicating variable in data for clustering
+#' @param x_interest X paramater of interest
+#' @param boot_reps Integer for number of replications
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @param bound Character or character vector indicating which bootstrap p-values to generate
+#' @return Bootstrap p-value
+#'
+boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_reps, absval, bound){
+
+  #Calculate t vector
+  t <- if(absval) abs((beta - H0)/se) else (beta - H0)/se
+
+  #Calculate initial t
+  se0 <- clustered_se(data = data, model = model, clusterby = clusterby)
+  beta0 <- coef(model)
+  t0 <- if(absval) abs((beta0[x_interest] - H0)/se0[x_interest]) else (beta0[x_interest] - H0)/se0[x_interest]
+
+  p <- sapply(bound, p_eval, t = t, t0 = t0,  boot_reps = boot_reps, absval = absval)
+
+  return(p)
+
+}
+
+#' Calculate bootstrap p-value
+#'
+#' @param t Vector of t-values
+#' @param t0 Original t-value
+#' @param boot_reps Integer for number of replications
+#' @param bound Boolean indicating whether or not to use bound-MacKinnon correction
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @return Bootstrap p-value
+#'
+p_eval <- function(t, t0, boot_reps, bound, absval){
+
+  #Get proportion below and equal, while accounting for rounding errors
+  prop_less <- sum((t - t0) < -1e-12)/boot_reps
+  prop_equal <- sum(abs(t0 - t) < 1e-12)/boot_reps
+
+  prop <- switch (bound,
+                  'upper' = prop_less + prop_equal,
+                  'lower' = prop_less,
+                  'mid' = prop_less + prop_equal/2,
+                  'uniform' = prop_less + runif(1)*prop_equal,
+                  'density' = density_p_val(t = t, t0 = t0, boot_reps = boot_reps)
+  )
+
+  p <- if(absval) prop else 2*min(prop, 1 - prop)
+
+  return(p)
+
+}
+
+#' Calculate density p-value
+#'
+#' @param t Vector of t-values
+#' @param t0 Original t-value
+#' @param boot_reps Integer for number of replications
+#' @return Bootstrap p-value
+#'
+density_p_val <- function(t, t0, boot_reps){
+
+  h <- mlcv(t)
+
+  gauss <- (t0-t)/h
+
+  p <- sum(pnorm(q = gauss))/boot_reps
+
+  return(p)
+
+}
+
+#' Calculate best kernel for density function
+#'
+#' @param t Vector of t-values
+#'
+
+mlcv <- function(t) {
+
+  n <- length(t)
+
+  kdenest.mlcv <- function(h) {
+
+    p_val <- sapply(X = t, FUN = function(x, t) sum(dnorm((x-t)/h), -dnorm(0))/((n-1)*h), t = t)
+
+    p <- if(h > 0) {
+      -sum(log(ifelse(p_val > 0, p_val,.Machine$double.xmin)))/n
+    } else {
+      .Machine$double.xmax
+    }
+
+    return(p)
+  }
+
+  return(nlm(kdenest.mlcv, 1.06*sd(t)*n^{-1/5})$estimate*n^{-2/15})
 
 }
