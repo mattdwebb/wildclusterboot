@@ -1,5 +1,8 @@
 ###### TESTS wild_y FUNCTION ######
 
+library(testthat)
+library(wildclusterboot)
+
 test_that('wild_y calculates correct matrix', {
 
   set.seed(42)
@@ -59,8 +62,6 @@ test_that('wild_y calculates correct matrix', {
                      0.711167343,
                      -0.968275119),
                    ncol = 4)
-
-  colnames(y_wild) <- paste0('wild_boot_weight_', 1:boot_reps)
 
   expect_equal(y_wild, test_y_wild)
 
