@@ -21,7 +21,7 @@ arma::mat beta_cpp(arma::mat X, arma::mat bread, arma::mat y_wild) {
 }
 
 // [[Rcpp::export]]
-arma::mat y_weights(arma::vec fitted_data, arma::uvec uhat, arma::mat boot_weights, arma::uvec bootind) {
+arma::mat y_weights(arma::vec fitted_data, arma::vec uhat, arma::mat boot_weights, arma::uvec bootind) {
 
   int b;
   arma::mat y_wild(uhat.n_elem, boot_weights.n_cols);
