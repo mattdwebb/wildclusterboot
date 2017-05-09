@@ -25,7 +25,7 @@ wild_cluster_boot(data, model, x_interest, clusterby, boot_dist, boot_reps,
 
 \item{H0}{Float of integer inticating the null hypothesis, default is 0}
 
-\item{enum}{Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds}
+\item{enum}{Boolean indicating whether to calculate all possible wild bootstrap combinations}
 
 \item{absval}{Boolean indicating whether or not to use absolute valued t-statistics}
 

@@ -4,12 +4,12 @@
 \alias{wild_y}
 \title{Return matrix of wild response variables}
 \usage{
-wild_y(wild_data, bootby, boot_dist, boot_reps, enum)
+wild_y(data_wild, bootby, boot_dist, boot_reps, enum)
 }
 \arguments{
-\item{wild_data}{Dataframe of original data with wild fitted data and residuals}
+\item{data_wild}{Dataframe of original data with wild fitted data and residuals}
 
-\item{bootby}{string or formula indicating variables in wild_data to group bootstrap weights by}
+\item{bootby}{string or formula indicating variables in data_wild to group bootstrap weights by}
 
 \item{boot_dist}{Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"}
 
