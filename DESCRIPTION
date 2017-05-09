@@ -11,5 +11,10 @@ LazyData: TRUE
 Suggests:
     testthat
 Imports:
-    tensorA
+    tensorA,
+    RcppArmadillo,
+    dplyr,
+    magrittr,
+    modelr
 RoxygenNote: 5.0.1
+LinkingTo: Rcpp, RcppArmadillo

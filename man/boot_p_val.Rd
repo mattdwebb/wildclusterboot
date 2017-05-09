@@ -2,17 +2,36 @@
 % Please edit documentation in R/wild_cluster_boot.R
 \name{boot_p_val}
 \alias{boot_p_val}
-\title{Function for getting p-values out of boot.out object}
+\title{Calculate bootstrap p-values}
 \usage{
-boot_p_val(boot.out)
+boot_p_val(se, beta, H0, data, model, clusterby, x_interest, boot_reps, absval,
+  bound)
 }
 \arguments{
-\item{boot.out}{Bootstrap object returned from the boot function}
+\item{se}{Vector of standard errors}
+
+\item{beta}{Vector of coefficients for x of interest}
+
+\item{H0}{Float of integer inticating the null hypothesis, default is 0}
+
+\item{data}{Dataframe of initial data}
+
+\item{model}{lm object of interest}
+
+\item{clusterby}{String or formula indicating variable in data for clustering}
+
+\item{x_interest}{X paramater of interest}
+
+\item{boot_reps}{Integer for number of replications}
+
+\item{absval}{Boolean indicating whether or not to use absolute valued t-statistics}
+
+\item{bound}{Character or character vector indicating which bootstrap p-values to generate}
 }
 \value{
-Named vector of p-values corresponding to each column of boot.out t-matrix
+Bootstrap p-value
 }
 \description{
-Function for getting p-values out of boot.out object
+Calculate bootstrap p-values
 }
 

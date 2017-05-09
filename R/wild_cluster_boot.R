@@ -3,65 +3,120 @@
 #' @param data Dataframe with all data, including group indices
 #' @param model lm object of interest
 #' @param x_interest X paramater of interest
-#' @param clusterby String with name of clusterby variable in data
-#' @param boot_dist Vector of weights for wild bootstrap or string specifying default distribution
+#' @param clusterby String or formila with name of clusterby variable in data
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
 #' @param boot_reps Number of repititions for resampling data
 #' @param bootby String with name of bootby variable in data, default is same as clusterby
-#' @param H0 Integer inticating the alternative hypothesis, default is 0
-#' @param cores Interger indicating cores for multicore processing
-#' @return boot.out object from built-in boot function
+#' @param H0 Float of integer inticating the null hypothesis, default is 0
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @param bound Boolean indicating whether or not to use bound-MacKinnon correction
+#' @return p-value corresponding to bootstrap result
+#' @importFrom magrittr "%>%"
 #' @export
-wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, cores = 1){
+wild_cluster_boot <- function(data, model, x_interest, clusterby, boot_dist, boot_reps, bootby = clusterby, H0 = 0, enum = FALSE, absval = FALSE, bound = c('upper', 'lower', 'mid', 'uniform', 'density')){
 
   #Check if model is class lm
   if(class(model) != 'lm'){
     stop('Model variable must be lm class')
   }
 
-  #Set parallel option based on number of cores
-  if(cores == 1){
-    parallel <- 'no'
-  } else {
-    parallel <- 'snow'
-  }
+  #Check to ensure no incorrect bound values supplied
+  bound <- if(missing(bound)) 'upper' else match.arg(bound, several.ok = TRUE)
 
-  mle <- wild_clust_mle(model = model, x_interest = x_interest, boot_dist = boot_dist, bootby = bootby, H0 = H0)
+  #Get dataframe from model
+  data <- if(missing(data)) eval(model$call$data) else data
 
-  boot.out <- boot::boot(data = data,
-                         statistic = wild_clust_statistic,
-                         R = boot_reps,
-                         sim = 'parametric',
-                         ran.gen = wild_clust_ran,
-                         mle = mle,
-                         parallel = parallel,
-                         ncpus = cores,
-                         model = model,
-                         x_interest = x_interest,
-                         clusterby = clusterby,
-                         H0 = H0)
+  #Get wild bootstrap fitted data
+  data_wild <- wild_data(data = data, model = model, x_interest = x_interest, H0 = H0)
 
-  return(boot.out)
+  #Generate matrix of y-wild values
+  y_wild <- wild_y(data_wild = data_wild, bootby = bootby, boot_dist = boot_dist, boot_reps = boot_reps, enum = enum)
+
+  #Get model matrix from model
+  X <- model.matrix(model)
+
+  #Set x_ind as index from model matrix
+  x_ind <- grep(x_interest, colnames(X))
+
+  #Create bread, B and E matrices
+  bread <- bread_cpp(X)
+  B <- beta_cpp(X, bread, y_wild)
+  E <- y_wild - X %*% B
+
+  se <- wild_se(data_wild, E, X, bread, clusterby, x_ind)
+
+  #Get beta for x of interest
+  beta <- B[x_ind, ]
+
+  p_value <- boot_p_val(se = se, beta = beta, H0 = H0, data = data, model = model,
+                          clusterby = clusterby, x_interest = x_interest,
+                          boot_reps = boot_reps, bound = bound, absval = absval)
+
+  return(p_value)
 
 }
 
 
-#' Generates wild clustered bootstrap list to pass to mle parameter of boot function
+#' Return wild bootstrap residuals and fitted values
 #'
 #' @param model lm object of interest
 #' @param x_interest X paramater of interest
-#' @param clusterby Vector of cluster indices corresponding to X variables
-#' @param boot_dist Vector of weights for wild bootstrap or string specifying default distribution
-#' @param bootby String with name of bootby variable in data
-#' @param H0 Integer inticating the alternative hypothesis, default is 0
-#' @return List of specifications to pass to mle option of boot function
-#'
-wild_clust_mle <- function(model, x_interest, boot_dist, bootby, H0 = 0){
+#' @param H0 Float of integer inticating the null hypothesis, default is 0
+#' @return dataframe with original data and added fitted values and residuals
+wild_data <- function(data, model, x_interest, H0){
 
-  #Check if model is class lm
-  if(class(model) != 'lm'){
-    stop('Model variable must be lm class')
+  #Set out model variable names
+  model_vars <- all.vars(formula(model))
+  y_name <- model_vars[1]
+  short_vars <- model_vars[model_vars != x_interest]
+  short_x <- short_vars[short_vars != y_name]
+
+  #H0 transformation
+  h0_mutate <- lazyeval::interp(~ a - c*b, a = as.name(y_name), b = as.name(x_interest), c = H0)
+
+  #Imposes null hypothesis
+  short_data <- data %>%
+    dplyr::mutate_(.dots = setNames(list(h0_mutate), y_name))
+
+  #Check if short model is just intercept, otherwise create short formula
+  short_formula <- if(length(short_x) == 0){
+    reformulate(termlabels = c('1'), response = y_name)
+  } else{
+    reformulate(termlabels = short_x, response = y_name)
   }
 
+  #Estimate short model
+  short_model <- lm(data = short_data, formula = short_formula)
+
+  reverse_h0_mutate <- lazyeval::interp(~ a + c*b, a = as.name(y_name), b = as.name(x_interest), c = H0)
+  fitted_mutate <- lazyeval::interp(~ fitted_data + c*b, b = as.name(x_interest), c = H0)
+
+  #Get residuals and fitted data from short model
+  fitted_data <- short_data %>%
+    modelr::add_predictions(short_model) %>%
+    modelr::add_residuals(short_model) %>%
+    dplyr::rename(uhat = resid,
+                  fitted_data = pred) %>%
+    dplyr::mutate_(.dots = setNames(list(fitted_mutate), 'fitted_data')) %>%
+    dplyr::mutate_(.dots = setNames(list(reverse_h0_mutate), y_name))
+
+  return(fitted_data)
+
+}
+
+#' Return matrix of wild response variables
+#'
+#' @param data_wild Dataframe of original data with wild fitted data and residuals
+#' @param bootby string or formula indicating variables in data_wild to group bootstrap weights by
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
+#' @param boot_reps Number of repititions for resampling data
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps
+#' @return Matrix of bootstrap weights
+#'
+wild_y <- function(data_wild, bootby, boot_dist, boot_reps, enum){
+
+  #TODO: Split this out as a separate function
   #If boot_dist is character, resolve to default distribution
   if(class(boot_dist) == 'character'){
 
@@ -76,132 +131,201 @@ wild_clust_mle <- function(model, x_interest, boot_dist, bootby, H0 = 0){
     }
 
     boot_dist <- default_dist[[boot_dist]]
-  }
-
-  #Extract data from the model
-  data <- model.frame(model)
-
-  #Set out model variable names
-  model_vars <- all.vars(formula(model))
-  y_name <- model_vars[1]
-  short_vars <- model_vars[!model_vars %in% c(x_interest, y_name)]
-
-  #This will impose the H0
-  data[y_name] <- data[y_name] - H0 * data[x_interest]
-
-  #Check if short model is just intercept, otherwise create short formula
-  if(length(short_vars) == 0){
-    form <- reformulate(termlabels = c('1'), response = y_name)
-  } else{
-    form <- reformulate(termlabels = short_vars, response = y_name)
-  }
-
-  #Create short data frame and estimate short model
-  short_model <- lm(data = data, formula = form)
-
-  #Get residuals and fitted data from short model
-  uhat <- resid(short_model)
-  fitted_data <- fitted(short_model) + H0 * data[, x_interest]
-
-  #Set out list of mle options
-  mle_list <- list(uhat = uhat,
-                   fitted_data = fitted_data,
-                   y_name = y_name,
-                   boot_dist = boot_dist,
-                   bootby = bootby)
-
-  return(mle_list)
-
-}
-
-#' Function to curry function for ran.gen parameter of boot function
-#'
-#' @param data Data of interest, passed by boot function
-#' @param mle List of optional parameters, passed by boot function
-#' @return Randomized data using wild bootstrap proccess
-#'
-wild_clust_ran <- function(data, mle){
-
-  mle$data <- data
-
-  return(do.call(what = wild_clust_ran_, args = mle))
-
-}
-
-#' Function to pass to ran.gen parameter of boot function
-#'
-#' @param data Dataframe, which will be the initial data passed to boot data parameter
-#' @param y_name String with name of response variable in data
-#' @param uhat Vector of residuals from model
-#' @param fitted_data Vector of fitted data from model
-#' @param bootby String with name of bootby variable in data
-#' @param boot_dist Vector of bootstrap distribution
-#' @return Randomized data using wild bootstrap proccess
-wild_clust_ran_ <- function(data, y_name, uhat, fitted_data, bootby, boot_dist){
-
-  if(class(bootby) == 'formula'){
-
-    bootby <- all.vars(bootby)
 
   }
+
+  bootby <- if(class(bootby) == 'formula') all.vars(bootby) else bootby
 
   #Create unique vector of group ids
-  boot_unique <- unique(data[bootby])
+  boot_unique <- unique(data_wild[bootby])
+  boot_paste <- Reduce(paste0, data_wild[bootby])
+  boot_ind <- as.numeric(factor(boot_paste, levels = unique(boot_paste)))-1
 
-  #Add weights for each group
-  boot_weights <- cbind(boot_unique, weight = sample(x = boot_dist, size = nrow(boot_unique), replace = TRUE))
-  expanded_weights <- merge(x = data, y = boot_weights)
+  boot_reps <- if(enum) 2^nrow(boot_unique) else boot_reps
 
-  #Combine weights, fitted data and residuals to create new y values
-  data[y_name] <- fitted_data + uhat * expanded_weights[, 'weight']
+  # #Add weights for each group
+  weights <- gen_boot_mat(boot_dist = boot_dist, boot_unique = boot_unique, boot_reps = boot_reps, enum = enum)
 
-  return(data)
+  #Generate matrix of y-wild values
+  y_wild <- y_weights(data_wild[,'fitted_data'], data_wild[,'uhat'], weights, boot_ind)
 
-}
-
-#' Function for wild clustered bootstrap to pass to statistic parameter of boot function
-#'
-#' @param data Dataframe, which will be the data passed from boot ran.gen function at each iteration
-#' @param model lm model of interest
-#' @param x_interest String with name of the independent variable of interest
-#' @param clusterby String with name of clusterby variable in data
-#' @param H0 Number indicating the null hypothesis, default is 0
-#' @return List containing clustered standard error and coefficients for wild bootstrap
-
-wild_clust_statistic <- function(data, model, x_interest, clusterby, H0){
-
-  form <- formula(model)
-
-  #Estimate model from data
-  new_model <- lm(data = data, formula = form)
-
-  #If clusterby is formula, wrap it in a list
-  clusterby <- if(class(clusterby) == 'formula') list(clusterby) else clusterby
-
-  #Get clustered SE and beta for variable of interest
-  se_list <- lapply(X = clusterby, FUN = function(clust) clustered_se(model = new_model, data = data, clusterby = clust)[x_interest])
-
-  se <- as.numeric(se_list)
-  beta <- as.numeric(coef(new_model)[x_interest])
-
-  return((beta - H0)/se)
+  return(y_wild)
 
 }
 
-#' Function for getting p-values out of boot.out object
+#' Generate bootstrap weight matrix
 #'
-#' @param boot.out Bootstrap object returned from the boot function
-#' @return Named vector of p-values corresponding to each column of boot.out t-matrix
-#' @export
-boot_p_val <- function(boot.out){
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
+#' @param boot_unique Matrix of unique group IDs
+#' @param boot_reps Number of repititions for resampling data
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @return Matrix of bootstrap weights
+#'
+gen_boot_mat <- function(boot_dist, boot_unique, boot_reps, enum){
 
-  t0 <- boot.out$t0
-  t_df <- data.frame(boot.out$t)
-  boot_reps <- boot.out$R
+  weights <- if(class(boot_dist) != 'function' & !enum){
 
-  prop_vec <- mapply(FUN = function(t, t_vec) sum(t < t_vec)/boot_reps, t = t0, t_vec = t_df)
-  p_vec <- sapply(prop_vec, function(d) 2*min(d, 1-d))
+    matrix(sample(x = boot_dist, size = nrow(boot_unique)*boot_reps, replace = TRUE),
+                      nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE)
 
-  return(p_vec)
+  } else if(class(boot_dist) != 'function' & enum){
+
+    t(expand.grid(rep(x = list(boot_dist), times = nrow(boot_unique))))
+
+  } else{
+
+    matrix(boot_dist(n = nrow(boot_unique)*boot_reps),
+           nrow = nrow(boot_unique), ncol = boot_reps, byrow = FALSE)
+
+  }
+
+  return(weights)
+
+}
+
+#' Calculate vector of clustered standard errors
+#'
+#' @param data_wild Dataframe of original data with wild fitted data and residuals
+#' @param E Matrix of residuals, which each column representing a bootstrap replication
+#' @param X Model matrix
+#' @param bread X*X' matrix
+#' @param clusterby String or formula with name of clusterby variable in data
+#' @param x_ind integer indicating the index of x of interest in model matrix
+#' @return Vector of standard errors
+#'
+wild_se <- function(data_wild, E, X, bread, clusterby, x_ind){
+
+  clusterby_list <- if(class(clusterby) == 'formula') all.vars(clusterby) else clusterby
+  comb_vars <- unlist(lapply(X = 1:length(clusterby_list), FUN = combn, x = clusterby_list, simplify = FALSE), recursive = FALSE)
+
+  cluster_ind <- sapply(X = comb_vars, FUN = crve_ind, data_wild = data_wild)
+  comb <- (-1)^(sapply(X = comb_vars, length)+1)
+  G <- apply(cluster_ind, 2, function(x) length(unique(x)))
+
+  sandwich_array_cpp <- mapply(uhat = data.frame(E), FUN = crve_sandwich, MoreArgs = list(X = X, bread = bread, clusterby = cluster_ind, comb, G))
+  se_cpp <- sqrt(sandwich_array_cpp[x_ind^2,])
+
+  return(se_cpp)
+
+}
+
+
+#' Generate bootstrap weight matrix
+#'
+#' @param boot_dist Vector of weights for wild bootstrap, string specifying default distribution or a function that only takes the argument "n"
+#' @param boot_unique Matrix of unique group IDs
+#' @param boot_reps Number of repititions for resampling data
+#' @param enum Boolean indicating whether to calculate all possible wild bootstrap combinations, will override boot_reps and report upper and lower bounds
+#' @return Matrix of bootstrap weights
+#'
+crve_ind <- function(data_wild, clusterby){
+
+  clustervars <- Reduce(data_wild[clusterby], f = paste0)
+  cluster_ind <- as.numeric(factor(clustervars, levels = unique(clustervars)))-1
+
+}
+
+
+#' Calculate bootstrap p-values
+#'
+#' @param se Vector of standard errors
+#' @param beta Vector of coefficients for x of interest
+#' @param H0 Float of integer inticating the null hypothesis, default is 0
+#' @param data Dataframe of initial data
+#' @param model lm object of interest
+#' @param clusterby String or formula indicating variable in data for clustering
+#' @param x_interest X paramater of interest
+#' @param boot_reps Integer for number of replications
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @param bound Character or character vector indicating which bootstrap p-values to generate
+#' @return Bootstrap p-value
+#'
+boot_p_val <- function(se, beta, H0, data, model, clusterby, x_interest, boot_reps, absval, bound){
+
+  #Calculate t vector
+  t <- if(absval) abs((beta - H0)/se) else (beta - H0)/se
+
+  #Calculate initial t
+  se0 <- clustered_se(data = data, model = model, clusterby = clusterby)
+  beta0 <- coef(model)
+  t0 <- if(absval) abs((beta0[x_interest] - H0)/se0[x_interest]) else (beta0[x_interest] - H0)/se0[x_interest]
+
+  p <- sapply(bound, p_eval, t = t, t0 = t0,  boot_reps = boot_reps, absval = absval)
+
+  return(p)
+
+}
+
+#' Calculate bootstrap p-value
+#'
+#' @param t Vector of t-values
+#' @param t0 Original t-value
+#' @param boot_reps Integer for number of replications
+#' @param bound Boolean indicating whether or not to use bound-MacKinnon correction
+#' @param absval Boolean indicating whether or not to use absolute valued t-statistics
+#' @return Bootstrap p-value
+#'
+p_eval <- function(t, t0, boot_reps, bound, absval){
+
+  #Get proportion below and equal, while accounting for rounding errors
+  prop_less <- sum((t - t0) < -1e-12)/boot_reps
+  prop_equal <- sum(abs(t0 - t) < 1e-12)/boot_reps
+
+  prop <- switch (bound,
+                  'upper' = prop_less + prop_equal,
+                  'lower' = prop_less,
+                  'mid' = prop_less + prop_equal/2,
+                  'uniform' = prop_less + runif(1)*prop_equal,
+                  'density' = density_p_val(t = t, t0 = t0, boot_reps = boot_reps)
+  )
+
+  p <- if(absval) prop else 2*min(prop, 1 - prop)
+
+  return(p)
+
+}
+
+#' Calculate density p-value
+#'
+#' @param t Vector of t-values
+#' @param t0 Original t-value
+#' @param boot_reps Integer for number of replications
+#' @return Bootstrap p-value
+#'
+density_p_val <- function(t, t0, boot_reps){
+
+  h <- mlcv(t)
+
+  gauss <- (t0-t)/h
+
+  p <- sum(pnorm(q = gauss))/boot_reps
+
+  return(p)
+
+}
+
+#' Calculate best kernel for density function
+#'
+#' @param t Vector of t-values
+#'
+
+mlcv <- function(t) {
+
+  n <- length(t)
+
+  kdenest.mlcv <- function(h) {
+
+    p_val <- sapply(X = t, FUN = function(x, t) sum(dnorm((x-t)/h), -dnorm(0))/((n-1)*h), t = t)
+
+    p <- if(h > 0) {
+      -sum(log(ifelse(p_val > 0, p_val,.Machine$double.xmin)))/n
+    } else {
+      .Machine$double.xmax
+    }
+
+    return(p)
+  }
+
+  return(nlm(kdenest.mlcv, 1.06*sd(t)*n^{-1/5})$estimate*n^{-2/15})
 
 }
