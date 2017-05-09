@@ -15,7 +15,7 @@ wild_se(data_wild, E, X, bread, clusterby, x_ind)
 
 \item{bread}{X*X' matrix}
 
-\item{clusterby}{String or formila with name of clusterby variable in data}
+\item{clusterby}{String or formula with name of clusterby variable in data}
 
 \item{x_ind}{integer indicating the index of x of interest in model matrix}
 }

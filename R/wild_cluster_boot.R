@@ -189,7 +189,7 @@ gen_boot_mat <- function(boot_dist, boot_unique, boot_reps, enum){
 #' @param E Matrix of residuals, which each column representing a bootstrap replication
 #' @param X Model matrix
 #' @param bread X*X' matrix
-#' @param clusterby String or formila with name of clusterby variable in data
+#' @param clusterby String or formula with name of clusterby variable in data
 #' @param x_ind integer indicating the index of x of interest in model matrix
 #' @return Vector of standard errors
 #'
