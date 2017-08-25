@@ -71,3 +71,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+
+static const R_CallMethodDef CallEntries[] = {
+    {"wildclusterboot_crve_sandwich", (DL_FUNC) &wildclusterboot_crve_sandwich, 6},
+    {"wildclusterboot_eigen_fix_cpp", (DL_FUNC) &wildclusterboot_eigen_fix_cpp, 1},
+    {"wildclusterboot_bread_cpp", (DL_FUNC) &wildclusterboot_bread_cpp, 1},
+    {"wildclusterboot_beta_cpp", (DL_FUNC) &wildclusterboot_beta_cpp, 3},
+    {"wildclusterboot_y_weights", (DL_FUNC) &wildclusterboot_y_weights, 4},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_wildclusterboot(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+}
