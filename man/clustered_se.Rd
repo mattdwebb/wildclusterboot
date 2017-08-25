@@ -4,23 +4,25 @@
 \alias{clustered_se}
 \title{Calculate clustered standard errors for lm model}
 \usage{
-clustered_se(data, model, clusterby, G = NULL, cluster_ids = NULL)
+clustered_se(data, model, clusterby)
 }
 \arguments{
-\item{data}{Dataframe containing both model data and clusterby variables}
+\item{data}{Dataframe object containing both model data and clusterby variables}
 
-\item{model}{lm object for which clustered errors sought}
+\item{model}{lm object to calculate clustered standard errors for}
 
-\item{clusterby}{Vector of cluster indices corresponding to X variables}
-
-\item{G}{Total number of groups, should be specified for performance}
-
-\item{cluster_ids}{Vector of unique cluster_ids, should be specified for performance}
+\item{clusterby}{String or fomula indicating the column in `data` to cluster on
+Use a string for one-way clustering. a formula to indicate
+multiway clustering (e.g. use `~ G + H` to a clustering
+using the G and H dimensions}
 }
 \value{
 Named vector of clustered standard errors
 }
 \description{
-Calculate clustered standard errors for lm model
+This is a flexible function that will calculate cluster-robust
+standard errors for an `lm` object. This includes the standard,
+one-way clustered standard error (similar to Stata's `cluster` option)
+and a "multi-way" clustered standard error, due to Cameron, Gelbach
+and Miller (2011)
 }
-

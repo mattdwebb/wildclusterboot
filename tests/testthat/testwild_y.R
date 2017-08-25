@@ -14,7 +14,7 @@ test_that('wild_y calculates correct matrix', {
 
   data_wild <- wild_data(data = data, model = model, x_interest = x_interest, H0 = H0)
   bootby <- 'clusterby'
-  boot_dist <- 'two_pt'
+  boot_dist <- 'rad'
   boot_reps <- 4
   enum <- F
 

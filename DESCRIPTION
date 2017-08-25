@@ -5,7 +5,7 @@ Version: 0.1
 Date: 2016-05-17
 Author: Scott McNeil
 Maintainer: Scott McNeil <scottmcneil@cmail.carleton.ca>
-Description: This package provides tools to do both clustered linear regression and the wild bootstrap by cluster
+Description: This package provides tools to calculate clustered standard errors and the wild cluster bootstrap
 License: What license is it under?
 LazyData: TRUE
 Suggests:
@@ -16,5 +16,5 @@ Imports:
     dplyr,
     magrittr,
     modelr
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 LinkingTo: Rcpp, RcppArmadillo
