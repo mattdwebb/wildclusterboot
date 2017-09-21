@@ -27,7 +27,7 @@ install.packages('devtools')
 Once `devtools` is installed, run the following code to install the package:
 
 ```
-devtools::install_github(repo = 'scottmcneil/wildclusterboot')
+devtools::install_github(repo = 'mattdwebb/wildclusterboot')
 
 ```
 
