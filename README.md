@@ -16,7 +16,7 @@ If you already have R and Rstudio installed, the easiest way to install this pac
 
 Once `devtools` is installed, run the following code to install the package:
 
-    devtools::install_github(repo = 'scottmcneil/wildclusterboot')
+    devtools::install_github(repo = 'mattdwebb/wildclusterboot')
 
 Usage
 -----
